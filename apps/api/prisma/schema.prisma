@@ -45,6 +45,7 @@ model User {
   notifications Notification[]
   reviewTasks   ReviewTask[]
   auditLogs     AuditLog[]
+  comments      Comment[]
 
   @@map("users")
 }
@@ -58,15 +59,19 @@ model Document {
   area                String
   status              DocumentStatus @default(DRAFT)
   currentVersionLabel String         @default("v1.0")
+  googleDriveFileId   String?        @default("")
+  publishedAt         DateTime?
+  reviewedBy          String?
   createdBy           String
   updatedBy           String
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
 
-  versions     DocumentVersion[]
-  reviewTasks  ReviewTask[]
-  auditLogs    AuditLog[]
+  versions      DocumentVersion[]
+  reviewTasks   ReviewTask[]
+  auditLogs     AuditLog[]
   notifications Notification[]
+  comments      Comment[]
 
   @@map("documents")
 }
@@ -87,6 +92,20 @@ model DocumentVersion {
   document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@map("document_versions")
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  documentId String
+  authorId   String
+  content    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  authorUser User     @relation(fields: [authorId], references: [id])
+
+  @@map("comments")
 }
 
 model ReviewTask {

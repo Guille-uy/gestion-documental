@@ -85,7 +85,7 @@ export async function logAuditAction(
       userId,
       action,
       entityType,
-      entityId,
+      entityId: entityId ?? "",
       metadata,
     },
   });

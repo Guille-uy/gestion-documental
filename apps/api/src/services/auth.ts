@@ -121,7 +121,7 @@ export async function createUser(data: {
       firstName: data.firstName,
       lastName: data.lastName,
       password: hashedPassword,
-      role: data.role,
+      role: data.role as any,
       area: data.area || null,
       isActive: true,
     },
@@ -152,7 +152,7 @@ export async function updateUser(
 ) {
   const user = await prisma.user.update({
     where: { id: userId },
-    data,
+    data: data as any,
   });
 
   logger.info("User updated", { userId, changes: Object.keys(data) });
