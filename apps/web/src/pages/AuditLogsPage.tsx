@@ -1,17 +1,17 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { apiService } from "../services/api.js";
 import { Input } from "../components/Input.js";
 import toast from "react-hot-toast";
 import { formatDistanceToNow } from "date-fns";
 
-export function AuditLogsPage() {
+export function AuditLogsPagina() {
   const [logs, setLogs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [page, setPage] = useState(1);
+  const [Pagina, setPagina] = useState(1);
   const [total, setTotal] = useState(0);
   const [filters, setFilters] = useState({
-    action: "",
-    userId: "",
+    Accion: "",
+    UsuarioId: "",
     entityType: "",
   });
 
@@ -19,20 +19,20 @@ export function AuditLogsPage() {
 
   useEffect(() => {
     fetchLogs();
-  }, [page, filters]);
+  }, [Pagina, filters]);
 
   const fetchLogs = async () => {
     try {
       setIsLoading(true);
       const response = await apiService.getAuditLogs({
-        page,
+        Pagina,
         limit,
         ...filters,
       });
       setLogs(response.data.data.items);
       setTotal(response.data.data.total);
     } catch (error) {
-      toast.error("Failed to load audit logs");
+      toast.error("Error al cargar Registros de Auditoria");
     } finally {
       setIsLoading(false);
     }
@@ -41,42 +41,42 @@ export function AuditLogsPage() {
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
-    setPage(1);
+    setPagina(1);
   };
 
-  const totalPages = Math.ceil(total / limit);
+  const totalPaginas = Math.ceil(total / limit);
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">Audit Logs</h1>
+      <h1 className="text-3xl font-bold text-gray-900">Registros de Auditoria</h1>
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <select
-            name="action"
-            value={filters.action}
+            name="Accion"
+            value={filters.Accion}
             onChange={handleFilterChange}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="">All Actions</option>
+            <option value="">Todas las acciones</option>
             <option value="LOGIN">Login</option>
             <option value="CREATE_DOCUMENT">Create Document</option>
             <option value="UPDATE_DOCUMENT">Update Document</option>
             <option value="PUBLISH_DOCUMENT">Publish Document</option>
             <option value="DOWNLOAD_DOCUMENT">Download Document</option>
-            <option value="CREATE_USER">Create User</option>
-            <option value="UPDATE_USER">Update User</option>
-            <option value="DELETE_USER">Delete User</option>
-            <option value="SUBMIT_FOR_REVIEW">Submit for Review</option>
-            <option value="APPROVE_REVIEW">Approve Review</option>
+            <option value="CREATE_Usuario">Crear Usuario</option>
+            <option value="UPDATE_Usuario">Update Usuario</option>
+            <option value="Eliminar_Usuario">Eliminar Usuario</option>
+            <option value="SUBMIT_FOR_REVer">Submit for ReVer</option>
+            <option value="APPROVE_REVer">Approve ReVer</option>
             <option value="REQUEST_CHANGES">Request Changes</option>
           </select>
 
           <Input
-            placeholder="Filter by user ID..."
-            name="userId"
-            value={filters.userId}
+            placeholder="Filter by Usuario ID..."
+            name="UsuarioId"
+            value={filters.UsuarioId}
             onChange={handleFilterChange}
           />
 
@@ -91,10 +91,10 @@ export function AuditLogsPage() {
 
       {/* Logs Table */}
       {isLoading ? (
-        <div className="text-center py-8">Loading...</div>
+        <div className="text-center py-8">Cargando...</div>
       ) : logs.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-8 text-center">
-          <p className="text-gray-600">No audit logs found</p>
+          <p className="text-gray-600">No se encontraron registros</p>
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -102,9 +102,9 @@ export function AuditLogsPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha y Hora</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuario</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Accion</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entity Type</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entity ID</th>
                 </tr>
@@ -119,13 +119,13 @@ export function AuditLogsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-gray-900">
-                        {log.user.firstName} {log.user.lastName}
+                        {log.Usuario.firstName} {log.Usuario.lastName}
                       </span>
-                      <p className="text-gray-500 text-xs">{log.user.email}</p>
+                      <p className="text-gray-500 text-xs">{log.Usuario.email}</p>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-900">
-                        {log.action}
+                        {log.Accion}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">{log.entityType}</td>
@@ -141,25 +141,25 @@ export function AuditLogsPage() {
           {/* Pagination */}
           <div className="px-6 py-4 border-t flex items-center justify-between">
             <p className="text-sm text-gray-600">
-              Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total}
+              Mostrando {(Pagina - 1) * limit + 1} to {Math.min(Pagina * limit, total)} de {total}
             </p>
             <div className="flex gap-2">
               <button
-                onClick={() => setPage(Math.max(1, page - 1))}
-                disabled={page === 1}
+                onClick={() => setPagina(Math.max(1, Pagina - 1))}
+                disabled={Pagina === 1}
                 className="px-3 py-1 border rounded disabled:opacity-50"
               >
-                Previous
+                Anterior
               </button>
               <span className="px-3 py-1">
-                Page {page} of {totalPages}
+                Pagina {Pagina} de {totalPaginas}
               </span>
               <button
-                onClick={() => setPage(Math.min(totalPages, page + 1))}
-                disabled={page === totalPages}
+                onClick={() => setPagina(Math.min(totalPaginas, Pagina + 1))}
+                disabled={Pagina === totalPaginas}
                 className="px-3 py-1 border rounded disabled:opacity-50"
               >
-                Next
+                Siguiente
               </button>
             </div>
           </div>
@@ -168,3 +168,4 @@ export function AuditLogsPage() {
     </div>
   );
 }
+

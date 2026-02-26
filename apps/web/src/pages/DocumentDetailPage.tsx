@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "../components/Button.js";
 import { Input } from "../components/Input.js";
@@ -17,8 +17,8 @@ export function DocumentDetailPage() {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [reviewers, setReviewers] = useState<string[]>([]);
-  const [reviewComment, setReviewComment] = useState("");
-  const [actionComment, setActionComment] = useState("");
+  const [reviewComentario, setReviewComentario] = useState("");
+  const [actionComentario, setActionComentario] = useState("");
 
   useEffect(() => {
     fetchDocument();
@@ -31,7 +31,7 @@ export function DocumentDetailPage() {
       const response = await apiService.getDocument(documentId);
       setDocument(response.data.data);
     } catch (error) {
-      toast.error("Failed to load document");
+      toast.error("Error al cargar el documento");
       navigate("/documents");
     } finally {
       setIsLoading(false);
@@ -60,11 +60,11 @@ export function DocumentDetailPage() {
     try {
       await apiService.submitForReview(documentId, {
         reviewers,
-        comments: reviewComment,
+        comments: reviewComentario,
       });
       toast.success("Document submitted for review");
       setReviewers([]);
-      setReviewComment("");
+      setReviewComentario("");
       setShowReviewForm(false);
       fetchDocument();
     } catch (error) {
@@ -72,7 +72,7 @@ export function DocumentDetailPage() {
     }
   };
 
-  const handlePublishDocument = async () => {
+  const handlePublicarDocument = async () => {
     if (!documentId) return;
 
     try {
@@ -111,13 +111,13 @@ export function DocumentDetailPage() {
   }
 
   if (!document) {
-    return <div className="text-center py-8">Document not found</div>;
+    return <div className="text-center py-8">Documento no encontrado</div>;
   }
 
   const canEdit = document.status === "DRAFT" && document.createdBy === user?.id;
   const canSubmitForReview =
     document.status === "DRAFT" && document.createdBy === user?.id;
-  const canApprove =
+  const canAprobar =
     (user?.role === "APPROVER" || user?.role === "ADMIN") &&
     document.status === "APPROVED";
 
@@ -128,37 +128,37 @@ export function DocumentDetailPage() {
           <h1 className="text-3xl font-bold text-gray-900">{document.title}</h1>
           <p className="text-gray-600 mt-1">Code: {document.code}</p>
         </div>
-        <StatusBadge status={document.status} />
+        <EstadoBadge status={document.status} />
       </div>
 
       {/* Document Info */}
       <div className="bg-white rounded-lg shadow p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
-        <InfoItem label="Type" value={document.type} />
+        <InfoItem label="Tipo" value={document.type} />
         <InfoItem label="Area" value={document.area} />
         <InfoItem label="Version" value={document.currentVersionLabel} />
         <InfoItem
-          label="Created"
+          label="Creado"
           value={formatDistanceToNow(new Date(document.createdAt), {
             addSuffix: true,
           })}
         />
       </div>
 
-      {/* Description */}
+      {/* Descripcion */}
       {document.description && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="font-bold text-gray-900 mb-2">Description</h2>
+          <h2 className="font-bold text-gray-900 mb-2">Descripcion</h2>
           <p className="text-gray-600">{document.description}</p>
         </div>
       )}
 
-      {/* Actions */}
+      {/* Acciones */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="font-bold text-gray-900 mb-4">Actions</h2>
+        <h2 className="font-bold text-gray-900 mb-4">Acciones</h2>
         <div className="flex flex-wrap gap-2">
           {canEdit && (
             <Button onClick={() => setShowUploadForm(!showUploadForm)} size="sm">
-              {showUploadForm ? "Cancel Upload" : "Upload File"}
+              {showUploadForm ? "Cancelar Upload" : "Upload File"}
             </Button>
           )}
 
@@ -177,13 +177,13 @@ export function DocumentDetailPage() {
               onClick={() => setShowReviewForm(!showReviewForm)}
               size="sm"
             >
-              {showReviewForm ? "Cancel" : "Submit for Review"}
+              {showReviewForm ? "Cancelar" : "Enviar a Revision"}
             </Button>
           )}
 
-          {canApprove && (
-            <Button onClick={handlePublishDocument} variant="primary" size="sm">
-              Publish
+          {canAprobar && (
+            <Button onClick={handlePublicarDocument} variant="primary" size="sm">
+              Publicar
             </Button>
           )}
         </div>
@@ -206,17 +206,17 @@ export function DocumentDetailPage() {
         </form>
       )}
 
-      {/* Submit for Review Form */}
+      {/* Enviar a Revision Form */}
       {showReviewForm && (
         <form
           onSubmit={handleSubmitForReview}
           className="bg-white rounded-lg shadow p-6 space-y-4"
         >
-          <h2 className="font-bold text-gray-900">Submit for Review</h2>
+          <h2 className="font-bold text-gray-900">Enviar a Revision</h2>
           <Input
             label="Add review comment (optional)"
-            value={reviewComment}
-            onChange={(e) => setReviewComment(e.target.value)}
+            value={reviewComentario}
+            onChange={(e) => setReviewComentario(e.target.value)}
             placeholder="Enter your comment..."
           />
           <div>
@@ -232,15 +232,15 @@ export function DocumentDetailPage() {
             disabled={reviewers.length === 0}
             size="sm"
           >
-            Submit for Review
+            Enviar a Revision
           </Button>
         </form>
       )}
 
-      {/* Comments Section */}
+      {/* Comentarios Section */}
       {document.comments && document.comments.length > 0 && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="font-bold text-gray-900 mb-4">Comments</h2>
+          <h2 className="font-bold text-gray-900 mb-4">Comentarios</h2>
           <div className="space-y-4">
             {document.comments.map((comment: any) => (
               <div key={comment.id} className="border-l-4 border-blue-500 pl-4">
@@ -262,7 +262,7 @@ export function DocumentDetailPage() {
       {/* Versions */}
       {document.versions && document.versions.length > 0 && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="font-bold text-gray-900 mb-4">Version History</h2>
+          <h2 className="font-bold text-gray-900 mb-4">Historial de Versiones</h2>
           <div className="space-y-3">
             {document.versions.map((version: any) => (
               <div key={version.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
@@ -274,7 +274,7 @@ export function DocumentDetailPage() {
                     })}
                   </p>
                 </div>
-                <StatusBadge status={version.status} />
+                <EstadoBadge status={version.status} />
               </div>
             ))}
           </div>
@@ -293,7 +293,7 @@ function InfoItem({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
+function EstadoBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
     DRAFT: "bg-gray-100 text-gray-900",
     IN_REVIEW: "bg-yellow-100 text-yellow-900",

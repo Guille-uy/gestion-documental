@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../store/auth.js";
 import { apiService } from "../services/api.js";
@@ -33,7 +33,7 @@ export function Layout({ children }: LayoutProps) {
 
   const handleLogout = () => {
     logout();
-    toast.success("Logged out successfully");
+    toast.success("Sesion cerrada");
     navigate("/login");
   };
 
@@ -41,12 +41,11 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow">
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link to="/" className="text-2xl font-bold text-blue-600">
-              DMS
+              SGD
             </Link>
 
             {user && (
@@ -59,7 +58,7 @@ export function Layout({ children }: LayoutProps) {
                       : "text-gray-600 hover:bg-gray-100"
                   }`}
                 >
-                  Documents
+                  Documentos
                 </Link>
 
                 <Link
@@ -70,7 +69,7 @@ export function Layout({ children }: LayoutProps) {
                       : "text-gray-600 hover:bg-gray-100"
                   }`}
                 >
-                  Notifications
+                  Notificaciones
                   {unreadCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                       {unreadCount}
@@ -88,7 +87,7 @@ export function Layout({ children }: LayoutProps) {
                           : "text-gray-600 hover:bg-gray-100"
                       }`}
                     >
-                      Users
+                      Usuarios
                     </Link>
 
                     <Link
@@ -99,7 +98,7 @@ export function Layout({ children }: LayoutProps) {
                           : "text-gray-600 hover:bg-gray-100"
                       }`}
                     >
-                      Audit
+                      Auditoria
                     </Link>
                   </>
                 )}
@@ -113,12 +112,7 @@ export function Layout({ children }: LayoutProps) {
                       {user.firstName} {user.lastName}
                     </span>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                      />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                     </svg>
                   </button>
 
@@ -132,7 +126,7 @@ export function Layout({ children }: LayoutProps) {
                         onClick={handleLogout}
                         className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                       >
-                        Logout
+                        Cerrar sesion
                       </button>
                     </div>
                   )}
@@ -143,7 +137,6 @@ export function Layout({ children }: LayoutProps) {
         </nav>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">{children}</main>
     </div>
   );

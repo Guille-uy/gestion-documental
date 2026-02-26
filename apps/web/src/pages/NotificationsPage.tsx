@@ -1,82 +1,82 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { apiService } from "../services/api.js";
 import { Button } from "../components/Button.js";
 import toast from "react-hot-toast";
 import { formatDistanceToNow } from "date-fns";
 
-export function NotificationsPage() {
-  const [notifications, setNotifications] = useState<any[]>([]);
+export function NotificacionesPagina() {
+  const [Notificaciones, setNotificaciones] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [page, setPage] = useState(1);
+  const [Pagina, setPagina] = useState(1);
   const [total, setTotal] = useState(0);
-  const [unreadOnly, setUnreadOnly] = useState(false);
+  const [Sin leerOnly, setSin leerOnly] = useState(false);
 
   const limit = 20;
 
   useEffect(() => {
-    fetchNotifications();
-  }, [page, unreadOnly]);
+    fetchNotificaciones();
+  }, [Pagina, Sin leerOnly]);
 
-  const fetchNotifications = async () => {
+  const fetchNotificaciones = async () => {
     try {
       setIsLoading(true);
-      const response = await apiService.getNotifications({
-        page,
+      const response = await apiService.getNotificaciones({
+        Pagina,
         limit,
-        unreadOnly,
+        Sin leerOnly,
       });
-      setNotifications(response.data.data.items);
+      setNotificaciones(response.data.data.items);
       setTotal(response.data.data.total);
     } catch (error) {
-      toast.error("Failed to load notifications");
+      toast.error("Error al cargar Notificaciones");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleMarkAsRead = async (notificationId: string) => {
+  const handleMarkAsRead = async (notificacionId: string) => {
     try {
-      await apiService.markNotificationAsRead(notificationId);
-      setNotifications((prev) =>
+      await apiService.markNotificationAsRead(notificacionId);
+      setNotificaciones((prev) =>
         prev.map((n) =>
-          n.id === notificationId ? { ...n, readAt: new Date() } : n
+          n.id === notificacionId ? { ...n, readAt: new Date() } : n
         )
       );
     } catch (error) {
-      toast.error("Failed to mark notification as read");
+      toast.error("Failed to mark notificacion as read");
     }
   };
 
   const handleMarkAllAsRead = async () => {
     try {
-      await apiService.markAllNotificationsAsRead();
-      setNotifications((prev) =>
+      await apiService.markAllNotificacionesAsRead();
+      setNotificaciones((prev) =>
         prev.map((n) => ({ ...n, readAt: new Date() }))
       );
-      toast.success("All notifications marked as read");
+      toast.success("All Notificaciones marked as read");
     } catch (error) {
-      toast.error("Failed to mark all as read");
+      toast.error("Failed to Marcar todas como leidas");
     }
   };
 
-  const handleDelete = async (notificationId: string) => {
+  const handleEliminar = async (notificacionId: string) => {
     try {
-      await apiService.deleteNotification(notificationId);
-      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
-      toast.success("Notification deleted");
+      await apiService.EliminarNotification(notificacionId);
+      setNotificaciones((prev) => prev.filter((n) => n.id !== notificacionId));
+      toast.success("Notification Eliminard");
     } catch (error) {
-      toast.error("Failed to delete notification");
+      toast.error("Failed to Eliminar notificacion");
     }
   };
 
-  const totalPages = Math.ceil(total / limit);
+  const totalPaginas = Math.ceil(total / limit);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Notificaciones</h1>
         <Button onClick={handleMarkAllAsRead} variant="secondary" size="sm">
-          Mark All as Read
+          Marcar todas como leidas
         </Button>
       </div>
 
@@ -84,59 +84,59 @@ export function NotificationsPage() {
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
-            checked={unreadOnly}
+            checked={Sin leerOnly}
             onChange={(e) => {
-              setUnreadOnly(e.target.checked);
-              setPage(1);
+              setSin leerOnly(e.target.checked);
+              setPagina(1);
             }}
             className="rounded"
           />
-          <span className="text-sm font-medium">Show unread only</span>
+          <span className="text-sm font-medium">Show Sin leer only</span>
         </label>
       </div>
 
       {isLoading ? (
-        <div className="text-center py-8">Loading...</div>
-      ) : notifications.length === 0 ? (
+        <div className="text-center py-8">Cargando...</div>
+      ) : Notificaciones.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-8 text-center">
-          <p className="text-gray-600">No notifications</p>
+          <p className="text-gray-600">No Notificaciones</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {notifications.map((notification) => (
+          {Notificaciones.map((notificacion) => (
             <div
-              key={notification.id}
+              key={notificacion.id}
               className={`p-4 rounded-lg border-l-4 flex items-start justify-between ${
-                notification.readAt
+                notificacion.readAt
                   ? "bg-gray-50 border-gray-300"
                   : "bg-blue-50 border-blue-500"
               }`}
             >
               <div className="flex-1">
                 <h3 className="font-medium text-gray-900">
-                  {notification.title}
+                  {notificacion.title}
                 </h3>
                 <p className="text-gray-600 text-sm mt-1">
-                  {notification.message}
+                  {notificacion.message}
                 </p>
                 <p className="text-gray-500 text-xs mt-2">
-                  {formatDistanceToNow(new Date(notification.createdAt), {
+                  {formatDistanceToNow(new Date(notificacion.createdAt), {
                     addSuffix: true,
                   })}
                 </p>
               </div>
 
               <div className="flex gap-2 ml-4">
-                {!notification.readAt && (
+                {!notificacion.readAt && (
                   <button
-                    onClick={() => handleMarkAsRead(notification.id)}
+                    onClick={() => handleMarkAsRead(notificacion.id)}
                     className="p-2 hover:bg-gray-200 rounded"
                   >
                     ✓
                   </button>
                 )}
                 <button
-                  onClick={() => handleDelete(notification.id)}
+                  onClick={() => handleEliminar(notificacion.id)}
                   className="p-2 hover:bg-red-200 rounded text-red-600"
                 >
                   ✕
@@ -148,29 +148,29 @@ export function NotificationsPage() {
       )}
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {totalPaginas > 1 && (
         <div className="flex items-center justify-between pt-4 border-t">
           <p className="text-sm text-gray-600">
-            Showing {(page - 1) * limit + 1} to{" "}
-            {Math.min(page * limit, total)} of {total}
+            Mostrando {(Pagina - 1) * limit + 1} to{" "}
+            {Math.min(Pagina * limit, total)} de {total}
           </p>
           <div className="flex gap-2">
             <button
-              onClick={() => setPage(Math.max(1, page - 1))}
-              disabled={page === 1}
+              onClick={() => setPagina(Math.max(1, Pagina - 1))}
+              disabled={Pagina === 1}
               className="px-3 py-1 border rounded disabled:opacity-50"
             >
-              Previous
+              Anterior
             </button>
             <span className="px-3 py-1">
-              Page {page} of {totalPages}
+              Pagina {Pagina} de {totalPaginas}
             </span>
             <button
-              onClick={() => setPage(Math.min(totalPages, page + 1))}
-              disabled={page === totalPages}
+              onClick={() => setPagina(Math.min(totalPaginas, Pagina + 1))}
+              disabled={Pagina === totalPaginas}
               className="px-3 py-1 border rounded disabled:opacity-50"
             >
-              Next
+              Siguiente
             </button>
           </div>
         </div>
@@ -178,3 +178,4 @@ export function NotificationsPage() {
     </div>
   );
 }
+

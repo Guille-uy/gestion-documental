@@ -1,126 +1,126 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { Button } from "../components/Button.js";
 import { Input } from "../components/Input.js";
 import { apiService } from "../services/api.js";
 import toast from "react-hot-toast";
 
-export function UsersPage() {
-  const [users, setUsers] = useState<any[]>([]);
+export function UsuariosPagina() {
+  const [Usuarios, setUsuarios] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [page, setPage] = useState(1);
+  const [Pagina, setPagina] = useState(1);
   const [total, setTotal] = useState(0);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     firstName: "",
     lastName: "",
-    password: "",
-    role: "READER",
+    Contrasena: "",
+    Rol: "READER",
     area: "",
   });
 
   const limit = 20;
 
   useEffect(() => {
-    fetchUsers();
-  }, [page]);
+    fetchUsuarios();
+  }, [Pagina]);
 
-  const fetchUsers = async () => {
+  const fetchUsuarios = async () => {
     try {
       setIsLoading(true);
-      const response = await apiService.getUsers(page, limit);
-      setUsers(response.data.data.items);
+      const response = await apiService.getUsuarios(Pagina, limit);
+      setUsuarios(response.data.data.items);
       setTotal(response.data.data.total);
     } catch (error) {
-      toast.error("Failed to load users");
+      toast.error("Error al cargar Usuarios");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleCreateUser = async (e: React.FormEvent) => {
+  const handleCreateUsuario = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-      await apiService.createUser(formData);
-      toast.success("User created successfully");
+      await apiService.createUsuario(formData);
+      toast.success("Usuario creado exitosamente");
       setFormData({
         email: "",
         firstName: "",
         lastName: "",
-        password: "",
-        role: "READER",
+        Contrasena: "",
+        Rol: "READER",
         area: "",
       });
       setShowCreateForm(false);
-      fetchUsers();
+      fetchUsuarios();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to create user");
+      toast.error(error.response?.data?.error || "Failed to Crear Usuario");
     }
   };
 
-  const handleDeleteUser = async (userId: string) => {
-    if (!window.confirm("Are you sure you want to delete this user?")) return;
+  const handleEliminarUsuario = async (UsuarioId: string) => {
+    if (!window.confirm("Are you sure you want to Eliminar this Usuario?")) return;
 
     try {
-      await apiService.deleteUser(userId);
-      toast.success("User deleted successfully");
-      fetchUsers();
+      await apiService.EliminarUsuario(UsuarioId);
+      toast.success("Usuario Eliminard successfully");
+      fetchUsuarios();
     } catch (error) {
-      toast.error("Failed to delete user");
+      toast.error("Failed to Eliminar Usuario");
     }
   };
 
-  const totalPages = Math.ceil(total / limit);
+  const totalPaginas = Math.ceil(total / limit);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Users</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Usuarios</h1>
         <Button onClick={() => setShowCreateForm(!showCreateForm)}>
-          {showCreateForm ? "Cancel" : "Create User"}
+          {showCreateForm ? "Cancelarar" : "Crear Usuario"}
         </Button>
       </div>
 
-      {/* Create User Form */}
+      {/* Crear Usuario Form */}
       {showCreateForm && (
-        <form onSubmit={handleCreateUser} className="bg-white rounded-lg shadow p-6 space-y-4">
+        <form onSubmit={handleCreateUsuario} className="bg-white rounded-lg shadow p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Email"
+              label="Correo"
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
             />
             <Input
-              label="Password"
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              label="Contrasena"
+              type="Contrasena"
+              value={formData.Contrasena}
+              onChange={(e) => setFormData({ ...formData, Contrasena: e.target.value })}
               required
             />
             <Input
-              label="First Name"
+              label="Nombre"
               value={formData.firstName}
               onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
               required
             />
             <Input
-              label="Last Name"
+              label="Apellido"
               value={formData.lastName}
               onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
               required
             />
             <select
-              value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+              value={formData.Rol}
+              onChange={(e) => setFormData({ ...formData, Rol: e.target.value })}
               className="px-3 py-2 border border-gray-300 rounded-lg"
             >
               <option value="ADMIN">Admin</option>
               <option value="QUALITY_MANAGER">Quality Manager</option>
               <option value="DOCUMENT_OWNER">Document Owner</option>
-              <option value="REVIEWER">Reviewer</option>
+              <option value="REVerER">ReVerer</option>
               <option value="APPROVER">Approver</option>
               <option value="READER">Reader</option>
             </select>
@@ -130,13 +130,13 @@ export function UsersPage() {
               onChange={(e) => setFormData({ ...formData, area: e.target.value })}
             />
           </div>
-          <Button type="submit">Create User</Button>
+          <Button type="submit">Crear Usuario</Button>
         </form>
       )}
 
-      {/* Users Table */}
+      {/* Usuarios Table */}
       {isLoading ? (
-        <div className="text-center py-8">Loading...</div>
+        <div className="text-center py-8">Cargando...</div>
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
@@ -144,31 +144,31 @@ export function UsersPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Correo</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Area</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Accions</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
+                {Usuarios.map((Usuario) => (
+                  <tr key={Usuario.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm">
-                      {user.firstName} {user.lastName}
+                      {Usuario.firstName} {Usuario.lastName}
                     </td>
-                    <td className="px-6 py-4 text-sm">{user.email}</td>
+                    <td className="px-6 py-4 text-sm">{Usuario.email}</td>
                     <td className="px-6 py-4 text-sm">
                       <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-900">
-                        {user.role}
+                        {Usuario.Rol}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm">{user.area}</td>
+                    <td className="px-6 py-4 text-sm">{Usuario.area}</td>
                     <td className="px-6 py-4">
                       <button
-                        onClick={() => handleDeleteUser(user.id)}
+                        onClick={() => handleEliminarUsuario(Usuario.id)}
                         className="text-red-600 hover:underline text-sm"
                       >
-                        Delete
+                        Eliminar
                       </button>
                     </td>
                   </tr>
@@ -180,25 +180,25 @@ export function UsersPage() {
           {/* Pagination */}
           <div className="px-6 py-4 border-t flex items-center justify-between">
             <p className="text-sm text-gray-600">
-              Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total}
+              Mostrando {(Pagina - 1) * limit + 1} to {Math.min(Pagina * limit, total)} de {total}
             </p>
             <div className="flex gap-2">
               <button
-                onClick={() => setPage(Math.max(1, page - 1))}
-                disabled={page === 1}
+                onClick={() => setPagina(Math.max(1, Pagina - 1))}
+                disabled={Pagina === 1}
                 className="px-3 py-1 border rounded disabled:opacity-50"
               >
-                Previous
+                Anterior
               </button>
               <span className="px-3 py-1">
-                Page {page} of {totalPages}
+                Pagina {Pagina} de {totalPaginas}
               </span>
               <button
-                onClick={() => setPage(Math.min(totalPages, page + 1))}
-                disabled={page === totalPages}
+                onClick={() => setPagina(Math.min(totalPaginas, Pagina + 1))}
+                disabled={Pagina === totalPaginas}
                 className="px-3 py-1 border rounded disabled:opacity-50"
               >
-                Next
+                Siguiente
               </button>
             </div>
           </div>
@@ -207,3 +207,4 @@ export function UsersPage() {
     </div>
   );
 }
+
