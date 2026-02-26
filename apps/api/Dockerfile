@@ -1,5 +1,8 @@
 FROM node:20-alpine
 
+# Install OpenSSL 3 (required by Prisma on Alpine)
+RUN apk add --no-cache openssl
+
 WORKDIR /app
 
 # Copy root package files for workspaces
