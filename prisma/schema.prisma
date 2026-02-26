@@ -1,0 +1,252 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============= Users & Auth =============
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  firstName String
+  lastName  String
+  password  String // bcrypt hashed
+  role      UserRole   @default(READER)
+  area      String?
+  isActive  Boolean    @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  documents          Document[]
+  createdDocuments   Document[]          @relation("DocumentCreatedBy")
+  updatedDocuments   Document[]          @relation("DocumentUpdatedBy")
+  reviewedDocuments  Document[]          @relation("DocumentReviewedBy")
+  reviewTasks        ReviewTask[]
+  auditLogs          AuditLog[]
+  notifications      Notification[]
+  comments           DocumentComment[]
+
+  @@index([email])
+  @@index([role])
+}
+
+enum UserRole {
+  ADMIN
+  QUALITY_MANAGER
+  DOCUMENT_OWNER
+  REVIEWER
+  APPROVER
+  READER
+}
+
+// ============= Documents =============
+
+model Document {
+  id                  String   @id @default(cuid())
+  code                String   @unique
+  title               String
+  description         String?
+  type                DocumentType
+  area                String
+  status              DocumentStatus @default(DRAFT)
+  currentVersionLabel String   @default("v1.0")
+  googleDriveFileId   String?
+  currentVersionId    String?
+
+  nextReviewDate DateTime?
+  publishedAt    DateTime?
+
+  createdBy String
+  createdByUser User @relation("DocumentCreatedBy", fields: [createdBy], references: [id])
+
+  updatedBy String
+  updatedByUser User @relation("DocumentUpdatedBy", fields: [updatedBy], references: [id])
+
+  reviewedBy String?
+  reviewedByUser User? @relation("DocumentReviewedBy", fields: [reviewedBy], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  versions   DocumentVersion[]
+  comments   DocumentComment[]
+  reviews    ReviewTask[]
+  auditLogs  AuditLog[]
+  notifications Notification[]
+
+  @@index([code])
+  @@index([status])
+  @@index([area])
+  @@index([createdBy])
+}
+
+enum DocumentStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  PUBLISHED
+  OBSOLETE
+}
+
+enum DocumentType {
+  SOP
+  POLICY
+  WI
+  FORM
+  RECORD
+}
+
+model DocumentVersion {
+  id              String   @id @default(cuid())
+  documentId      String
+  document        Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  versionLabel    String
+  googleDriveFileId String
+  status          DocumentStatus
+  createdBy       String
+  createdAt       DateTime @default(now())
+
+  comments       DocumentComment[]
+
+  @@unique([documentId, versionLabel])
+  @@index([documentId])
+}
+
+model DocumentComment {
+  id              String   @id @default(cuid())
+  documentId      String
+  document        Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  versionId       String?
+  version         DocumentVersion? @relation(fields: [versionId], references: [id], onDelete: SetNull)
+
+  content         String
+  author          String
+  authorUser      User     @relation(fields: [author], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([documentId])
+  @@index([versionId])
+}
+
+// ============= Reviews & Workflow =============
+
+model ReviewTask {
+  id              String   @id @default(cuid())
+  documentId      String
+  document        Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  assignedTo      String
+  assignedUser    User     @relation(fields: [assignedTo], references: [id])
+
+  status          ReviewStatus @default(PENDING)
+  action          ReviewAction?
+  comments        String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  completedAt     DateTime?
+
+  @@index([documentId])
+  @@index([assignedTo])
+  @@index([status])
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  CHANGES_REQUESTED
+  COMPLETED
+}
+
+enum ReviewAction {
+  APPROVE
+  REQUEST_CHANGES
+}
+
+// ============= Notifications =============
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type        NotificationType
+  title       String
+  message     String
+
+  entityType  String // "Document", "ReviewTask", etc.
+  entityId    String
+
+  documentId  String?
+  document    Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime @default(now())
+  readAt      DateTime?
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  DOCUMENT_SUBMITTED
+  DOCUMENT_APPROVED
+  DOCUMENT_PUBLISHED
+  REVIEW_REQUESTED
+  REVIEW_REMINDER
+  DOCUMENT_CHANGED
+  USER_ASSIGNED
+}
+
+// ============= Audit Logging =============
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+
+  action      AuditAction
+  entityType  String
+  entityId    String?
+  metadata    Json?
+  ipAddress   String?
+
+  documentId  String?
+  document    Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+enum AuditAction {
+  LOGIN
+  LOGOUT
+  CREATE_DOCUMENT
+  UPDATE_DOCUMENT
+  DELETE_DOCUMENT
+  PUBLISH_DOCUMENT
+  DOWNLOAD_DOCUMENT
+  CREATE_USER
+  UPDATE_USER
+  DELETE_USER
+  ASSIGN_ROLE
+  SUBMIT_FOR_REVIEW
+  APPROVE_REVIEW
+  REQUEST_CHANGES
+}
