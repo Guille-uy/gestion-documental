@@ -22,8 +22,7 @@ COPY apps/api/ ./apps/api/
 # Generate Prisma client (pin to v5 to match @prisma/client version)
 RUN cd apps/api && npx prisma@5 generate
 
-# Build the API (|| true: noEmitOnError=false emits JS even if type warnings remain)
-RUN cd apps/api && npm run build || true
+# No tsc build needed — tsx runs TypeScript directly at runtime
 
 WORKDIR /app/apps/api
 
