@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  QUALITY_MANAGER
+  DOCUMENT_OWNER
+  REVIEWER
+  APPROVER
+  READER
+}
+
+enum DocumentStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  PUBLISHED
+  OBSOLETE
+}
+
+enum ReviewTaskStatus {
+  PENDING
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      Role     @default(READER)
+  area      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  notifications Notification[]
+  reviewTasks   ReviewTask[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+model Document {
+  id                  String         @id @default(cuid())
+  code                String         @unique
+  title               String
+  description         String?
+  type                String
+  area                String
+  status              DocumentStatus @default(DRAFT)
+  currentVersionLabel String         @default("v1.0")
+  createdBy           String
+  updatedBy           String
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  versions     DocumentVersion[]
+  reviewTasks  ReviewTask[]
+  auditLogs    AuditLog[]
+  notifications Notification[]
+
+  @@map("documents")
+}
+
+model DocumentVersion {
+  id              String   @id @default(cuid())
+  documentId      String
+  versionLabel    String
+  googleDriveFileId String  @default("")
+  fileName        String?
+  fileSize        Int?
+  mimeType        String?
+  status          String   @default("DRAFT")
+  changes         String?
+  createdBy       String
+  createdAt       DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("document_versions")
+}
+
+model ReviewTask {
+  id          String           @id @default(cuid())
+  documentId  String
+  assignedTo  String
+  status      ReviewTaskStatus @default(PENDING)
+  action      String?
+  comments    String?
+  completedAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [assignedTo], references: [id])
+
+  @@map("review_tasks")
+}
+
+model Notification {
+  id         String    @id @default(cuid())
+  userId     String
+  type       String
+  title      String
+  message    String
+  entityType String?
+  entityId   String?
+  documentId String?
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  entityType String
+  entityId   String
+  documentId String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user     User      @relation(fields: [userId], references: [id])
+  document Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}
