@@ -2,7 +2,7 @@
 set -e
 
 echo "Running database migrations..."
-npx prisma migrate deploy
+npx prisma@5 migrate deploy
 
 echo "Seeding database (safe - skips existing users)..."
 npx tsx /app/apps/api/prisma/seed.ts || echo "Seed skipped"

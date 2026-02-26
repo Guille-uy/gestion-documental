@@ -16,8 +16,8 @@ COPY packages/shared/ ./packages/shared/
 # Copy API source
 COPY apps/api/ ./apps/api/
 
-# Generate Prisma client
-RUN cd apps/api && npx prisma generate
+# Generate Prisma client (pin to v5 to match @prisma/client version)
+RUN cd apps/api && npx prisma@5 generate
 
 # Build the API
 RUN cd apps/api && npm run build
