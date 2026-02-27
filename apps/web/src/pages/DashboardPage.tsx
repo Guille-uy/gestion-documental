@@ -32,11 +32,19 @@ export function DashboardPage() {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [docsRes, unreadRes, auditRes] = await Promise.all([
+        const [docsRes, unreadRes] = await Promise.all([
           apiService.listDocuments({ page: 1, limit: 100 }),
           apiService.getUnreadCount(),
-          apiService.getAuditLogs({ page: 1, limit: 6 }),
         ]);
+
+        // Audit logs only accessible for ADMIN / QUALITY_MANAGER
+        let auditItems: any[] = [];
+        try {
+          const auditRes = await apiService.getAuditLogs({ page: 1, limit: 6 });
+          auditItems = auditRes.data.data.items ?? [];
+        } catch {
+          // silently skip for roles without audit access
+        }
 
         const docs: any[] = docsRes.data.data.items;
         const now = new Date();
@@ -96,7 +104,7 @@ export function DashboardPage() {
           byArea,
           staleDocsDetail,
           recentDocs: docs.slice(0, 5),
-          auditLogs: auditRes.data.data.items ?? [],
+          auditLogs: auditItems,
         });
       } catch {
         toast.error("Error al cargar el panel");
