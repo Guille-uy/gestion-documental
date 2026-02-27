@@ -65,8 +65,8 @@ class ApiService {
     return this.client.post("/auth/users", data);
   }
 
-  getUsers(page = 1, limit = 20) {
-    return this.client.get("/auth/users", { params: { page, limit } });
+  getUsers(page = 1, limit = 20, includeInactive = false) {
+    return this.client.get("/auth/users", { params: { page, limit, includeInactive } });
   }
 
   getUser(id: string) {
@@ -79,6 +79,10 @@ class ApiService {
 
   deleteUser(id: string) {
     return this.client.delete(`/auth/users/${id}`);
+  }
+
+  reactivateUser(id: string) {
+    return this.client.patch(`/auth/users/${id}/reactivate`);
   }
 
   // Documents API
@@ -119,6 +123,10 @@ class ApiService {
 
   publishDocument(documentId: string, data: any = {}) {
     return this.client.post(`/documents/${documentId}/publish`, data);
+  }
+
+  createNewVersion(documentId: string, data: { changes?: string } = {}) {
+    return this.client.post(`/documents/${documentId}/new-version`, data);
   }
 
   downloadDocument(documentId: string) {
@@ -179,6 +187,14 @@ class ApiService {
 
   deleteNotification(notificationId: string) {
     return this.client.delete(`/notifications/${notificationId}`);
+  }
+
+  archiveNotification(notificationId: string) {
+    return this.client.patch(`/notifications/${notificationId}/archive`);
+  }
+
+  restoreNotification(notificationId: string) {
+    return this.client.patch(`/notifications/${notificationId}/restore`);
   }
 
   // Audit API

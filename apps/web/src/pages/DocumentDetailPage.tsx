@@ -4,6 +4,7 @@ import { Button } from "../components/Button.js";
 import { Input } from "../components/Input.js";
 import { apiService } from "../services/api.js";
 import { useAuthStore } from "../store/auth.js";
+import { DocumentFlowDiagram } from "../components/DocumentFlowDiagram.js";
 import toast from "react-hot-toast";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -17,6 +18,8 @@ export function DocumentDetailPage() {
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [showApproveForm, setShowApproveForm] = useState(false);
+  const [showNewVersionForm, setShowNewVersionForm] = useState(false);
+  const [newVersionChanges, setNewVersionChanges] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [availableReviewers, setAvailableReviewers] = useState<any[]>([]);
   const [selectedReviewers, setSelectedReviewers] = useState<string[]>([]);
@@ -115,9 +118,13 @@ export function DocumentDetailPage() {
     if (!documentId || !doc) return;
     const reviewTaskId = doc.reviewTasks?.[0]?.id;
     if (!reviewTaskId) { toast.error("No se encontró tarea de revisión"); return; }
+    if (action === "REQUEST_CHANGES" && !actionComentario.trim()) {
+      toast.error("Debe describir los cambios requeridos antes de solicitar correcciones");
+      return;
+    }
     try {
       await apiService.approveReview(documentId, reviewTaskId, { action, comments: actionComentario });
-      toast.success(action === "APPROVE" ? "Documento aprobado" : "Cambios solicitados");
+      toast.success(action === "APPROVE" ? "Documento aprobado" : "Solicitud de cambios enviada al autor");
       setActionComentario("");
       setShowApproveForm(false);
       fetchDocument();
@@ -137,14 +144,35 @@ export function DocumentDetailPage() {
     }
   };
 
+  const handleCreateNewVersion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!documentId) return;
+    if (!window.confirm(`¿Crear una nueva versión de "${doc?.title}"?\n\nEl documento volverá al estado BORRADOR para iniciar un nuevo ciclo de revisión y aprobación. La versión publicada actual quedará como OBSOLETA.`)) return;
+    try {
+      await apiService.createNewVersion(documentId, { changes: newVersionChanges });
+      toast.success("Nueva versión creada. El documento vuelve a estado Borrador.");
+      setNewVersionChanges("");
+      setShowNewVersionForm(false);
+      fetchDocument();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Error al crear nueva versión");
+    }
+  };
+
   const handleDownloadDocument = async () => {
     if (!documentId) return;
     try {
       const response = await apiService.downloadDocument(documentId);
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      // Read filename from Content-Disposition header (includes extension)
+      const disposition = response.headers["content-disposition"] || "";
+      let fileName = `${doc.code}_v${doc.currentVersionLabel}`;
+      const match = disposition.match(/filename="?([^"\n]+)"?/i);
+      if (match?.[1]) fileName = decodeURIComponent(match[1]);
+      const mimeType = response.headers["content-type"] || "application/octet-stream";
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: mimeType }));
       const link = window.document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `${doc.code}_v${doc.currentVersionLabel}`);
+      link.setAttribute("download", fileName);
       window.document.body.appendChild(link);
       link.click();
       link.parentElement?.removeChild(link);
@@ -168,6 +196,7 @@ export function DocumentDetailPage() {
   const canSubmitForReview = doc.status === "DRAFT" && doc.createdBy === user?.id && tieneArchivo;
   const canReview = (user?.role === "REVIEWER" || user?.role === "APPROVER" || user?.role === "ADMIN") && doc.status === "IN_REVIEW";
   const canPublicar = (user?.role === "APPROVER" || user?.role === "ADMIN" || user?.role === "QUALITY_MANAGER") && doc.status === "IN_REVIEW" && doc.reviewTasks?.length > 0 && doc.reviewTasks?.every((t: any) => t.status !== "PENDING");
+  const canNuevaVersion = (user?.role === "DOCUMENT_OWNER" || user?.role === "ADMIN" || user?.role === "QUALITY_MANAGER") && doc.status === "PUBLISHED";
 
   return (
     <div className="space-y-6">
@@ -222,6 +251,11 @@ export function DocumentDetailPage() {
           )}
           {canPublicar && (
             <Button onClick={handlePublicarDocument} variant="primary" size="sm">Publicar</Button>
+          )}
+          {canNuevaVersion && (
+            <Button onClick={() => setShowNewVersionForm(!showNewVersionForm)} variant="outline" size="sm">
+              {showNewVersionForm ? "Cancelar" : "🔄 Crear Nueva Versión"}
+            </Button>
           )}
         </div>
       </div>
@@ -278,12 +312,62 @@ export function DocumentDetailPage() {
       {showApproveForm && (
         <div ref={approveFormRef} className="bg-white rounded-lg shadow p-6 space-y-4">
           <h2 className="font-bold text-gray-900">Revisión del Documento</h2>
-          <Input label="Comentarios de Revisión" value={actionComentario}
-            onChange={(e) => setActionComentario(e.target.value)} placeholder="Ingrese sus comentarios..." />
-          <div className="flex gap-3">
-            <Button onClick={() => handleReviewAction("APPROVE")} variant="primary" size="sm">Aprobar</Button>
-            <Button onClick={() => handleReviewAction("REQUEST_CHANGES")} variant="outline" size="sm">Solicitar Cambios</Button>
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-gray-700">
+              Comentarios
+              <span className="text-red-500 ml-1" title="Requerido para Solicitar Cambios">*</span>
+              <span className="text-gray-400 text-xs ml-2">(obligatorio para Solicitar Cambios)</span>
+            </label>
+            <textarea
+              value={actionComentario}
+              onChange={(e) => setActionComentario(e.target.value)}
+              placeholder="Describa las observaciones, inconsistencias o cambios que el autor debe realizar..."
+              rows={4}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y"
+            />
           </div>
+          <div className="flex gap-3 pt-1">
+            <Button onClick={() => handleReviewAction("APPROVE")} variant="primary" size="sm">✓ Aprobar documento</Button>
+            <Button
+              onClick={() => handleReviewAction("REQUEST_CHANGES")}
+              variant="outline"
+              size="sm"
+              disabled={!actionComentario.trim()}
+            >
+              ↩ Solicitar Cambios
+            </Button>
+          </div>
+          {!actionComentario.trim() && (
+            <p className="text-xs text-amber-600">Para solicitar cambios, debe escribir un comentario explicando qué debe corregirse.</p>
+          )}
+        </div>
+      )}
+
+      {showNewVersionForm && (
+        <div className="bg-amber-50 border border-amber-300 rounded-lg p-6 space-y-4">
+          <div>
+            <h2 className="font-bold text-gray-900">Crear Nueva Versión</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              El documento volverá a estado <strong>Borrador</strong> con una nueva versión (ej. v2.0).
+              La versión publicada actual quedará marcada como <strong>Obsoleta</strong> y se conservará en el historial de versiones.
+              Necesitará pasar nuevamente por el ciclo de revisión y aprobación antes de ser publicada.
+            </p>
+          </div>
+          <form onSubmit={handleCreateNewVersion} className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Descripción de los cambios <span className="text-gray-400 text-xs">(opcional)</span>
+              </label>
+              <textarea
+                value={newVersionChanges}
+                onChange={(e) => setNewVersionChanges(e.target.value)}
+                placeholder="Ej: Actualización de procedimientos según nueva normativa. Cambio en sección 3.2..."
+                rows={3}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 resize-y"
+              />
+            </div>
+            <Button type="submit" variant="primary" size="sm">Confirmar Nueva Versión</Button>
+          </form>
         </div>
       )}
 
@@ -320,6 +404,8 @@ export function DocumentDetailPage() {
           </div>
         </div>
       )}
+
+      <DocumentFlowDiagram currentStatus={doc.status} />
 
       {doc.versions && doc.versions.length > 0 && (
         <div className="bg-white rounded-lg shadow p-6">
