@@ -44,8 +44,8 @@ export function Layout({ children }: LayoutProps) {
       <header className="bg-white shadow">
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Link to="/" className="text-2xl font-bold text-blue-600">
-              SGD
+            <Link to="/" className="flex items-center">
+              <img src="/logo-centenario.png" alt="Centenario" className="h-10 w-auto" />
             </Link>
 
             {user && (

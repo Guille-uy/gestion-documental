@@ -91,8 +91,11 @@ export function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Sistema de Gestion Documental</h1>
-        <p className="text-gray-600 mb-8">Ingrese a su cuenta</p>
+        <div className="flex justify-center mb-6">
+          <img src="/logo-centenario.png" alt="Centenario" className="h-24 w-auto" />
+        </div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-1 text-center">Sistema de Gestión Documental</h1>
+        <p className="text-gray-500 mb-8 text-center text-sm">Ingrese a su cuenta</p>
 
         {errors.form && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-red-700 text-sm">
