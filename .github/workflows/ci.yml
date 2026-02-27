@@ -90,7 +90,7 @@ jobs:
       - name: Build frontend
         run: npm run build --workspace=apps/web
         env:
-          VITE_API_URL: https://plataforma-de-gesti-n-documental-production.up.railway.app/api
+          VITE_API_URL: https://gestion-documental-production.up.railway.app/api
 
       - name: Create SPA fallback
         run: cp apps/web/dist/index.html apps/web/dist/200.html
