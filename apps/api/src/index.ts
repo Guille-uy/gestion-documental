@@ -10,9 +10,7 @@ import authRouter from "./routes/auth.js";
 import documentsRouter from "./routes/documents.js";
 import notificationsRouter from "./routes/notifications.js";
 import auditRouter from "./routes/audit.js";
-
-// Google Drive health check
-import { testDriveAccess } from "./utils/google-drive.js";
+import configRouter from "./routes/config.js";
 
 const app = express();
 
@@ -38,6 +36,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/documents", documentsRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/audit", auditRouter);
+app.use("/api/config", configRouter);
 
 // Health checks
 app.get("/health", (req: Request, res: Response) => {
@@ -46,24 +45,6 @@ app.get("/health", (req: Request, res: Response) => {
     message: "API is running",
     timestamp: new Date().toISOString(),
   });
-});
-
-app.get("/health/drive", async (req: Request, res: Response) => {
-  try {
-    const isHealthy = await testDriveAccess();
-    res.json({
-      success: isHealthy,
-      message: isHealthy
-        ? "Google Drive is accessible"
-        : "Google Drive is not accessible",
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Google Drive health check failed",
-      error: (error as Error).message,
-    });
-  }
 });
 
 // 404 handler

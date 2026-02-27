@@ -11,6 +11,7 @@ import { DocumentDetailPage } from "./pages/DocumentDetailPage.js";
 import { NotificationsPage } from "./pages/NotificationsPage.js";
 import { UsersPage } from "./pages/UsersPage.js";
 import { AuditLogsPage } from "./pages/AuditLogsPage.js";
+import { ConfigPage } from "./pages/ConfigPage.js";
 import { useAuthStore } from "./store/auth.js";
 
 function ProtectedLayout() {
@@ -54,6 +55,7 @@ function App() {
             <Route element={<AdminLayout />}>
               <Route path="/users" element={<UsersPage />} />
               <Route path="/audit" element={<AuditLogsPage />} />
+              <Route path="/config" element={<ConfigPage />} />
             </Route>
           </Route>
 

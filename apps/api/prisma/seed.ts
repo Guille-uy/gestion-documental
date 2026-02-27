@@ -61,6 +61,43 @@ async function main() {
     }
   }
 
+  // Seed default document types
+  const documentTypes = [
+    { code: "SOP", name: "Procedimiento Operativo", prefix: "PO", description: "Procedimiento Operativo Estándar (Standard Operating Procedure)" },
+    { code: "POLICY", name: "Política", prefix: "POL", description: "Política organizacional" },
+    { code: "WI", name: "Instrucción de Trabajo", prefix: "IT", description: "Instrucción de Trabajo detallada" },
+    { code: "FORM", name: "Formulario", prefix: "FOR", description: "Formulario controlado" },
+    { code: "RECORD", name: "Registro", prefix: "REG", description: "Registro de calidad" },
+  ];
+
+  for (const dt of documentTypes) {
+    const existing = await prisma.documentTypeConfig.findUnique({ where: { code: dt.code } });
+    if (!existing) {
+      await prisma.documentTypeConfig.create({ data: dt });
+      console.log(`Created document type: ${dt.code}`);
+    }
+  }
+
+  // Seed default areas
+  const areas = [
+    { code: "CAL", name: "Calidad", description: "Área de Gestión de Calidad" },
+    { code: "OPE", name: "Operaciones", description: "Área de Operaciones" },
+    { code: "ADM", name: "Administración", description: "Área Administrativa" },
+    { code: "RRH", name: "Recursos Humanos", description: "Área de Recursos Humanos" },
+    { code: "LOG", name: "Logística", description: "Área de Logística" },
+    { code: "SIS", name: "Sistemas", description: "Área de Sistemas / IT" },
+    { code: "FIN", name: "Finanzas", description: "Área de Finanzas y Contabilidad" },
+    { code: "COM", name: "Comercial", description: "Área Comercial y Ventas" },
+  ];
+
+  for (const area of areas) {
+    const existing = await prisma.area.findUnique({ where: { code: area.code } });
+    if (!existing) {
+      await prisma.area.create({ data: area });
+      console.log(`Created area: ${area.code}`);
+    }
+  }
+
   console.log("Seeding complete.");
 }
 

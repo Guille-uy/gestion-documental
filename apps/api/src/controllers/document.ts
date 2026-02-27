@@ -203,10 +203,11 @@ export const downloadDocumentHandler = asyncHandler(
 
     const { documentId } = req.params;
 
-    const { content, fileName } = await downloadDocument(documentId, req.user.userId);
+    const { content, fileName, mimeType } = await downloadDocument(documentId, req.user.userId);
 
-    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
-    res.setHeader("Content-Type", "application/octet-stream");
+    res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(fileName)}"`);
+    res.setHeader("Content-Type", mimeType);
+    res.setHeader("Content-Length", content.length);
     res.send(content);
   }
 );

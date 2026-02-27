@@ -133,13 +133,42 @@ export const DocumentMetadataSchema = z.object({
 export type DocumentMetadata = z.infer<typeof DocumentMetadataSchema>;
 
 export const CreateDocumentSchema = z.object({
-  code: z.string().min(1),
   title: z.string().min(1),
   description: z.string().optional(),
-  type: z.nativeEnum(DocumentType),
+  type: z.string().min(1),
   area: z.string().min(1),
 });
 export type CreateDocument = z.infer<typeof CreateDocumentSchema>;
+
+export const CreateAreaSchema = z.object({
+  name: z.string().min(1),
+  code: z.string().min(1).max(10),
+  description: z.string().optional(),
+});
+export type CreateArea = z.infer<typeof CreateAreaSchema>;
+
+export const UpdateAreaSchema = z.object({
+  name: z.string().min(1).optional(),
+  description: z.string().optional(),
+  isActive: z.boolean().optional(),
+});
+export type UpdateArea = z.infer<typeof UpdateAreaSchema>;
+
+export const CreateDocumentTypeConfigSchema = z.object({
+  name: z.string().min(1),
+  code: z.string().min(1).max(20),
+  prefix: z.string().min(1).max(10),
+  description: z.string().optional(),
+});
+export type CreateDocumentTypeConfig = z.infer<typeof CreateDocumentTypeConfigSchema>;
+
+export const UpdateDocumentTypeConfigSchema = z.object({
+  name: z.string().min(1).optional(),
+  prefix: z.string().min(1).max(10).optional(),
+  description: z.string().optional(),
+  isActive: z.boolean().optional(),
+});
+export type UpdateDocumentTypeConfig = z.infer<typeof UpdateDocumentTypeConfigSchema>;
 
 export const UpdateDocumentSchema = z.object({
   title: z.string().min(1).optional(),

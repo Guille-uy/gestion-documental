@@ -98,7 +98,18 @@ export function Layout({ children }: LayoutProps) {
                           : "text-gray-600 hover:bg-gray-100"
                       }`}
                     >
-                      Auditoria
+                      Auditoría
+                    </Link>
+
+                    <Link
+                      to="/config"
+                      className={`px-3 py-2 rounded-md text-sm font-medium ${
+                        isActive("/config")
+                          ? "bg-blue-100 text-blue-700"
+                          : "text-gray-600 hover:bg-gray-100"
+                      }`}
+                    >
+                      Configuración
                     </Link>
                   </>
                 )}
@@ -141,3 +152,4 @@ export function Layout({ children }: LayoutProps) {
     </div>
   );
 }
+

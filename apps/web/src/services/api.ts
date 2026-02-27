@@ -127,6 +127,39 @@ class ApiService {
     });
   }
 
+  // Config API (Areas and Document Types)
+  getAreas(includeInactive = false) {
+    return this.client.get("/config/areas", { params: { includeInactive } });
+  }
+
+  createArea(data: { name: string; code: string; description?: string }) {
+    return this.client.post("/config/areas", data);
+  }
+
+  updateArea(id: string, data: any) {
+    return this.client.patch(`/config/areas/${id}`, data);
+  }
+
+  deleteArea(id: string) {
+    return this.client.delete(`/config/areas/${id}`);
+  }
+
+  getDocumentTypes(includeInactive = false) {
+    return this.client.get("/config/document-types", { params: { includeInactive } });
+  }
+
+  createDocumentType(data: { name: string; code: string; prefix: string; description?: string }) {
+    return this.client.post("/config/document-types", data);
+  }
+
+  updateDocumentType(id: string, data: any) {
+    return this.client.patch(`/config/document-types/${id}`, data);
+  }
+
+  deleteDocumentType(id: string) {
+    return this.client.delete(`/config/document-types/${id}`);
+  }
+
   // Notifications API
   getNotifications(params: any = {}) {
     return this.client.get("/notifications", { params });

@@ -1,18 +1,36 @@
 import { PrismaClient } from "@prisma/client";
-import {
-  uploadFile,
-  downloadFile,
-  deleteFile,
-  getFileMetadata,
-} from "../utils/google-drive.js";
 import { NotFoundError, ValidationError, AppError } from "../utils/errors.js";
 import { logger } from "../utils/logger.js";
 
 const prisma = new PrismaClient();
 
+async function generateDocumentCode(type: string): Promise<string> {
+  // Try to get prefix from DocumentTypeConfig table first
+  const typeConfig = await prisma.documentTypeConfig.findFirst({
+    where: { code: type, isActive: true },
+  });
+
+  const fallbackPrefixes: Record<string, string> = {
+    SOP: "PO", POLICY: "POL", WI: "IT", FORM: "FOR", RECORD: "REG",
+  };
+  const prefix = typeConfig?.prefix || fallbackPrefixes[type] || type.slice(0, 3).toUpperCase();
+  const year = new Date().getFullYear();
+
+  const count = await prisma.document.count({ where: { type } });
+  let seq = count + 1;
+  let attempts = 0;
+  while (attempts < 30) {
+    const code = `${prefix}-${year}-${String(seq).padStart(4, "0")}`;
+    const existing = await prisma.document.findUnique({ where: { code } });
+    if (!existing) return code;
+    seq++;
+    attempts++;
+  }
+  return `${prefix}-${year}-${Date.now().toString().slice(-6)}`;
+}
+
 export async function createDocument(
   data: {
-    code: string;
     title: string;
     description?: string;
     type: string;
@@ -20,18 +38,11 @@ export async function createDocument(
   },
   userId: string
 ) {
-  // Check if document code already exists
-  const existing = await prisma.document.findUnique({
-    where: { code: data.code },
-  });
-
-  if (existing) {
-    throw new ValidationError("Document with this code already exists");
-  }
+  const code = await generateDocumentCode(data.type);
 
   const document = await prisma.document.create({
     data: {
-      code: data.code,
+      code,
       title: data.title,
       description: data.description,
       type: data.type,
@@ -91,56 +102,39 @@ export async function uploadDocumentFile(
     throw new NotFoundError("Document not found");
   }
 
-  // Determine MIME type based on file extension
+  // Determine MIME type from extension
   const ext = fileName.split(".").pop()?.toLowerCase();
   let mimeType = "application/octet-stream";
   if (ext === "pdf") mimeType = "application/pdf";
   else if (ext === "docx")
-    mimeType =
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
   else if (ext === "xlsx")
-    mimeType =
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
-  // Upload to Google Drive
-  const fileId = await uploadFile(fileName, mimeType, fileContent);
+  // Store file content directly in the database
+  await prisma.documentVersion.updateMany({
+    where: { documentId, versionLabel: document.currentVersionLabel },
+    data: { fileContent, fileName, fileSize: fileContent.length, mimeType },
+  });
 
-  // Update document with file reference
+  // Mark document as having a file (use a local marker)
   const updated = await prisma.document.update({
     where: { id: documentId },
-    data: {
-      googleDriveFileId: fileId,
-      updatedBy: userId,
-    },
+    data: { googleDriveFileId: `local:${document.currentVersionLabel}`, updatedBy: userId },
   });
 
-  // Update current version with file reference
-  await prisma.documentVersion.updateMany({
-    where: {
-      documentId: documentId,
-      versionLabel: document.currentVersionLabel,
-    },
-    data: {
-      googleDriveFileId: fileId,
-    },
-  });
-
-  // Log the action
   await prisma.auditLog.create({
     data: {
       userId,
       action: "UPDATE_DOCUMENT",
       entityType: "Document",
       entityId: documentId,
-      documentId: documentId,
-      metadata: {
-        fileName,
-        fileId,
-      },
+      documentId,
+      metadata: { fileName, fileSize: fileContent.length },
     },
   });
 
-  logger.info("Document file uploaded", { documentId, fileId, fileName });
+  logger.info("Document file stored in DB", { documentId, fileName });
 
   return formatDocument(updated);
 }
@@ -151,17 +145,21 @@ export async function getDocument(documentId: string) {
     include: {
       versions: {
         orderBy: { createdAt: "desc" },
+        select: { id: true, versionLabel: true, fileName: true, fileSize: true, mimeType: true, status: true, createdAt: true, createdBy: true },
       },
       comments: {
         orderBy: { createdAt: "desc" },
         include: {
           authorUser: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-            },
+            select: { id: true, firstName: true, lastName: true, email: true },
+          },
+        },
+      },
+      reviewTasks: {
+        orderBy: { createdAt: "desc" },
+        include: {
+          user: {
+            select: { id: true, firstName: true, lastName: true, email: true },
           },
         },
       },
@@ -519,10 +517,17 @@ export async function downloadDocument(documentId: string, userId: string) {
   }
 
   if (!document.googleDriveFileId) {
-    throw new AppError(400, "Document file not attached");
+    throw new AppError(400, "El documento no tiene archivo adjunto");
   }
 
-  // Log the download
+  const version = await prisma.documentVersion.findFirst({
+    where: { documentId, versionLabel: document.currentVersionLabel },
+  });
+
+  if (!version?.fileContent) {
+    throw new AppError(400, "Contenido del archivo no encontrado");
+  }
+
   await prisma.auditLog.create({
     data: {
       userId,
@@ -530,17 +535,14 @@ export async function downloadDocument(documentId: string, userId: string) {
       entityType: "Document",
       entityId: documentId,
       documentId,
-      metadata: {
-        fileName: document.title,
-      },
+      metadata: { fileName: version.fileName || document.title },
     },
   });
 
-  const fileContent = await downloadFile(document.googleDriveFileId);
-
   return {
-    content: fileContent,
-    fileName: `${document.code}_v${document.currentVersionLabel}.pdf`,
+    content: Buffer.from(version.fileContent),
+    fileName: version.fileName || `${document.code}_v${document.currentVersionLabel}.pdf`,
+    mimeType: version.mimeType || "application/octet-stream",
   };
 }
 
@@ -569,12 +571,21 @@ function formatDocumentWithDetails(doc: any) {
   return {
     ...formatDocument(doc),
     versions: doc.versions,
-    comments: doc.comments.map((c: any) => ({
+    comments: (doc.comments || []).map((c: any) => ({
       id: c.id,
       content: c.content,
       author: c.authorUser,
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
+    })),
+    reviewTasks: (doc.reviewTasks || []).map((t: any) => ({
+      id: t.id,
+      status: t.status,
+      action: t.action,
+      comments: t.comments,
+      completedAt: t.completedAt,
+      createdAt: t.createdAt,
+      reviewer: t.user,
     })),
   };
 }
