@@ -174,15 +174,24 @@ export async function deleteUser(userId: string) {
     data: { isActive: false },
   });
 
-  logger.info("User deleted (soft delete)", { userId });
+  logger.info("User deactivated (soft delete)", { userId });
 }
 
-export async function getAllUsers(page: number = 1, limit: number = 20) {
+export async function reactivateUser(userId: string) {
+  await prisma.user.update({
+    where: { id: userId },
+    data: { isActive: true },
+  });
+
+  logger.info("User reactivated", { userId });
+}
+
+export async function getAllUsers(page: number = 1, limit: number = 20, includeInactive = false) {
   const skip = (page - 1) * limit;
 
   const [users, total] = await Promise.all([
     prisma.user.findMany({
-      where: { isActive: true },
+      where: includeInactive ? {} : { isActive: true },
       select: {
         id: true,
         email: true,
@@ -199,7 +208,7 @@ export async function getAllUsers(page: number = 1, limit: number = 20) {
       orderBy: { createdAt: "desc" },
     }),
     prisma.user.count({
-      where: { isActive: true },
+      where: includeInactive ? {} : { isActive: true },
     }),
   ]);
 

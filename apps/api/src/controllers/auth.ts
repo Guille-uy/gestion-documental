@@ -6,6 +6,7 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  reactivateUser,
   getAllUsers,
   getUserById,
 } from "../services/auth.js";
@@ -102,13 +103,16 @@ export const updateUserHandler = asyncHandler(
 export const deleteUserHandler = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
-
     await deleteUser(id);
+    res.json({ success: true, message: "Usuario desactivado correctamente" });
+  }
+);
 
-    res.json({
-      success: true,
-      message: "User deleted successfully",
-    });
+export const reactivateUserHandler = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { id } = req.params;
+    await reactivateUser(id);
+    res.json({ success: true, message: "Usuario reactivado correctamente" });
   }
 );
 
@@ -116,8 +120,9 @@ export const listUsersHandler = asyncHandler(
   async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
+    const includeInactive = req.query.includeInactive === "true";
 
-    const result = await getAllUsers(page, Math.min(limit, 100));
+    const result = await getAllUsers(page, Math.min(limit, 100), includeInactive);
 
     res.json({
       success: true,

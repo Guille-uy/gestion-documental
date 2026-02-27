@@ -546,6 +546,65 @@ export async function downloadDocument(documentId: string, userId: string) {
   };
 }
 
+export async function createNewVersion(documentId: string, changes: string | undefined, userId: string) {
+  const document = await prisma.document.findUnique({ where: { id: documentId } });
+
+  if (!document) throw new NotFoundError("Document not found");
+  if (document.status !== "PUBLISHED") {
+    throw new ValidationError("Solo se puede crear una nueva versión de documentos publicados");
+  }
+
+  // Increment major version: v1.0 → v2.0
+  const match = document.currentVersionLabel.match(/v(\d+)\.(\d+)/);
+  const newMajor = match ? parseInt(match[1]) + 1 : 2;
+  const newVersionLabel = `v${newMajor}.0`;
+
+  // Mark old published version as OBSOLETE
+  await prisma.documentVersion.updateMany({
+    where: { documentId, versionLabel: document.currentVersionLabel },
+    data: { status: "OBSOLETE" },
+  });
+
+  // Create the new version record
+  await prisma.documentVersion.create({
+    data: {
+      documentId,
+      versionLabel: newVersionLabel,
+      googleDriveFileId: "",
+      status: "DRAFT",
+      changes: changes || `Nueva versión ${newVersionLabel}. Revisión del documento ${document.code}.`,
+      createdBy: userId,
+    },
+  });
+
+  // Update document: back to DRAFT with new version label
+  const updated = await prisma.document.update({
+    where: { id: documentId },
+    data: {
+      status: "DRAFT",
+      currentVersionLabel: newVersionLabel,
+      googleDriveFileId: "",
+      publishedAt: null,
+      reviewedBy: null,
+      updatedBy: userId,
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId,
+      action: "CREATE_NEW_VERSION",
+      entityType: "Document",
+      entityId: documentId,
+      documentId,
+      metadata: { previousVersion: document.currentVersionLabel, newVersion: newVersionLabel, changes },
+    },
+  });
+
+  logger.info("New document version created", { documentId, newVersionLabel });
+  return formatDocument(updated);
+}
+
 // Helper functions
 function formatDocument(doc: any) {
   return {

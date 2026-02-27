@@ -7,13 +7,18 @@ export async function getNotifications(
   userId: string,
   page: number = 1,
   limit: number = 20,
-  unreadOnly: boolean = false
+  unreadOnly: boolean = false,
+  archivedOnly: boolean = false
 ) {
   const skip = (page - 1) * limit;
 
   const where: any = { userId };
-  if (unreadOnly) {
-    where.readAt = null;
+  if (archivedOnly) {
+    where.archivedAt = { not: null };
+  } else {
+    // Default: hide archived notifications
+    where.archivedAt = null;
+    if (unreadOnly) where.readAt = null;
   }
 
   const [notifications, total] = await Promise.all([
@@ -65,10 +70,30 @@ export async function getUnreadCount(userId: string) {
     where: {
       userId,
       readAt: null,
+      archivedAt: null,
     },
   });
 
   return count;
+}
+
+export async function archiveNotification(notificationId: string) {
+  const now = new Date();
+  await prisma.notification.update({
+    where: { id: notificationId },
+    data: {
+      archivedAt: now,
+      // Also mark as read when archiving
+      readAt: now,
+    },
+  });
+}
+
+export async function restoreNotification(notificationId: string) {
+  await prisma.notification.update({
+    where: { id: notificationId },
+    data: { archivedAt: null },
+  });
 }
 
 export async function deleteNotification(notificationId: string) {

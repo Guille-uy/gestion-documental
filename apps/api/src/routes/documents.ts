@@ -10,6 +10,7 @@ import {
   publishDocumentHandler,
   listDocumentsHandler,
   downloadDocumentHandler,
+  createNewVersionHandler,
 } from "../controllers/document.js";
 import { authMiddleware } from "../middleware/auth.js";
 
@@ -43,5 +44,6 @@ router.get("/:documentId/download", downloadDocumentHandler);
 router.post("/:documentId/submit-review", submitForReviewHandler);
 router.post("/:documentId/reviews/:reviewTaskId/approve", approveReviewHandler);
 router.post("/:documentId/publish", publishDocumentHandler);
+router.post("/:documentId/new-version", createNewVersionHandler);
 
 export default router;

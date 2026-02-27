@@ -57,7 +57,7 @@ export async function getAuditLogs(
   ]);
 
   return {
-    items: logs.map((log) => ({
+    items: logs.map((log: any) => ({
       id: log.id,
       action: log.action,
       entityType: log.entityType,

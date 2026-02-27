@@ -11,6 +11,7 @@ import {
   publishDocument,
   listDocuments,
   downloadDocument,
+  createNewVersion,
 } from "../services/document.js";
 import { CreateDocumentSchema, UpdateDocumentSchema } from "@dms/shared";
 
@@ -209,5 +210,17 @@ export const downloadDocumentHandler = asyncHandler(
     res.setHeader("Content-Type", mimeType);
     res.setHeader("Content-Length", content.length);
     res.send(content);
+  }
+);
+
+export const createNewVersionHandler = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: "Not authenticated" });
+    }
+    const { documentId } = req.params;
+    const { changes } = req.body;
+    const document = await createNewVersion(documentId, changes, req.user.userId);
+    res.status(201).json({ success: true, data: document });
   }
 );
