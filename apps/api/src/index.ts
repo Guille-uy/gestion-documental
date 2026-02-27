@@ -1,6 +1,5 @@
 import "express-async-errors";
-import express, { Request, Response } from "express";
-import cors from "cors";
+import express, { Request, Response, NextFunction } from "express";
 import { config } from "./config.js";
 import { logger } from "./utils/logger.js";
 import { errorHandler } from "./middleware/error.js";
@@ -14,9 +13,22 @@ import configRouter from "./routes/config.js";
 
 const app = express();
 
-// Middleware
-// origin: true reflects the request Origin — allows any origin while keeping cookies/credentials
-app.use(cors({ origin: true, credentials: true }));
+// Manual CORS middleware — allows any origin while supporting credentials
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const origin = req.headers.origin as string | undefined;
+  // Always reflect the Origin back (required when credentials: true)
+  res.setHeader("Access-Control-Allow-Origin", origin || "*");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Methods", "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  res.setHeader("Vary", "Origin");
+  // Handle preflight
+  if (req.method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
+  next();
+});
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
