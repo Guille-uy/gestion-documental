@@ -208,3 +208,4 @@ export function UsuariosPagina() {
   );
 }
 
+export { UsuariosPagina as UsersPage };

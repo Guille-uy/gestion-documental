@@ -169,3 +169,4 @@ export function AuditLogsPagina() {
   );
 }
 
+export { AuditLogsPagina as AuditLogsPage };

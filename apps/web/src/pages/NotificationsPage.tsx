@@ -184,3 +184,6 @@ export function NotificacionesPagina() {
   );
 }
 
+// Alias para compatibilidad con App.tsx
+export { NotificacionesPagina as NotificationsPage };
+
