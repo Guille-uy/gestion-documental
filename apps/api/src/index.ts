@@ -14,29 +14,9 @@ import configRouter from "./routes/config.js";
 
 const app = express();
 
-// Allowed origins: env var list + FRONTEND_URL + localhost + surge.sh deployments
-const allowedOrigins = new Set<string>([
-  ...(process.env.CORS_ORIGIN || "").split(",").filter(Boolean),
-  ...(process.env.FRONTEND_URL || "").split(",").filter(Boolean),
-  "http://localhost:5173",
-  "http://localhost:3000",
-]);
-
 // Middleware
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (Postman, mobile apps, server-to-server)
-      if (!origin) return callback(null, true);
-      // Allow any surge.sh subdomain
-      if (origin.endsWith(".surge.sh")) return callback(null, true);
-      // Allow explicitly configured origins
-      if (allowedOrigins.has(origin)) return callback(null, true);
-      callback(new Error(`CORS: origin ${origin} not allowed`));
-    },
-    credentials: true,
-  })
-);
+// origin: true reflects the request Origin — allows any origin while keeping cookies/credentials
+app.use(cors({ origin: true, credentials: true }));
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
