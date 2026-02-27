@@ -167,7 +167,7 @@ export function DocumentDetailPage() {
   const canEdit = doc.status === "DRAFT" && doc.createdBy === user?.id;
   const canSubmitForReview = doc.status === "DRAFT" && doc.createdBy === user?.id && tieneArchivo;
   const canReview = (user?.role === "REVIEWER" || user?.role === "APPROVER" || user?.role === "ADMIN") && doc.status === "IN_REVIEW";
-  const canPublicar = (user?.role === "APPROVER" || user?.role === "ADMIN" || user?.role === "QUALITY_MANAGER") && doc.status === "APPROVED";
+  const canPublicar = (user?.role === "APPROVER" || user?.role === "ADMIN" || user?.role === "QUALITY_MANAGER") && doc.status === "IN_REVIEW" && doc.reviewTasks?.length > 0 && doc.reviewTasks?.every((t: any) => t.status !== "PENDING");
 
   return (
     <div className="space-y-6">

@@ -10,8 +10,8 @@ export function AuditLogsPagina() {
   const [Pagina, setPagina] = useState(1);
   const [total, setTotal] = useState(0);
   const [filters, setFilters] = useState({
-    Accion: "",
-    UsuarioId: "",
+    action: "",
+    userId: "",
     entityType: "",
   });
 
@@ -25,7 +25,7 @@ export function AuditLogsPagina() {
     try {
       setIsLoading(true);
       const response = await apiService.getAuditLogs({
-        Pagina,
+        page: Pagina,
         limit,
         ...filters,
       });
@@ -54,29 +54,26 @@ export function AuditLogsPagina() {
       <div className="bg-white rounded-lg shadow p-4 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <select
-            name="Accion"
-            value={filters.Accion}
+            name="action"
+            value={filters.action}
             onChange={handleFilterChange}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Todas las acciones</option>
             <option value="LOGIN">Login</option>
-            <option value="CREATE_DOCUMENT">Create Document</option>
-            <option value="UPDATE_DOCUMENT">Update Document</option>
-            <option value="PUBLISH_DOCUMENT">Publish Document</option>
-            <option value="DOWNLOAD_DOCUMENT">Download Document</option>
-            <option value="CREATE_Usuario">Crear Usuario</option>
-            <option value="UPDATE_Usuario">Update Usuario</option>
-            <option value="Eliminar_Usuario">Eliminar Usuario</option>
-            <option value="SUBMIT_FOR_REVer">Submit for ReVer</option>
-            <option value="APPROVE_REVer">Approve ReVer</option>
-            <option value="REQUEST_CHANGES">Request Changes</option>
+            <option value="CREATE_DOCUMENT">Crear Documento</option>
+            <option value="UPDATE_DOCUMENT">Actualizar Documento</option>
+            <option value="PUBLISH_DOCUMENT">Publicar Documento</option>
+            <option value="DOWNLOAD_DOCUMENT">Descargar Documento</option>
+            <option value="SUBMIT_FOR_REVIEW">Enviar a Revisión</option>
+            <option value="APPROVE_REVIEW">Aprobar Revisión</option>
+            <option value="REQUEST_CHANGES">Solicitar Cambios</option>
           </select>
 
           <Input
-            placeholder="Filter by Usuario ID..."
-            name="UsuarioId"
-            value={filters.UsuarioId}
+            placeholder="Filtrar por ID de usuario..."
+            name="userId"
+            value={filters.userId}
             onChange={handleFilterChange}
           />
 
@@ -119,13 +116,13 @@ export function AuditLogsPagina() {
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-gray-900">
-                        {log.Usuario.firstName} {log.Usuario.lastName}
+                        {log.user?.firstName} {log.user?.lastName}
                       </span>
-                      <p className="text-gray-500 text-xs">{log.Usuario.email}</p>
+                      <p className="text-gray-500 text-xs">{log.user?.email}</p>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-900">
-                        {log.Accion}
+                        {log.action}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">{log.entityType}</td>

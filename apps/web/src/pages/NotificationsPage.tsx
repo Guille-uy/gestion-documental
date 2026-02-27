@@ -4,7 +4,6 @@ import { Button } from "../components/Button.js";
 import toast from "react-hot-toast";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { es } from "date-fns/locale";
 
 export function NotificacionesPagina() {
   const [notificaciones, setNotificaciones] = useState<any[]>([]);
@@ -22,7 +21,7 @@ export function NotificacionesPagina() {
   const fetchNotificaciones = async () => {
     try {
       setIsLoading(true);
-      const response = await apiService.getNotificaciones({
+      const response = await apiService.getNotifications({
         page: pagina,
         limit,
         unreadOnly: soloSinLeer,
@@ -51,7 +50,7 @@ export function NotificacionesPagina() {
 
   const handleMarcarTodasLeidas = async () => {
     try {
-      await apiService.markAllNotificacionesAsRead();
+      await apiService.markAllNotificationsAsRead();
       setNotificaciones((prev) =>
         prev.map((n) => ({ ...n, readAt: new Date() }))
       );
@@ -63,7 +62,7 @@ export function NotificacionesPagina() {
 
   const handleEliminar = async (notificacionId: string) => {
     try {
-      await apiService.EliminarNotification(notificacionId);
+      await apiService.deleteNotification(notificacionId);
       setNotificaciones((prev) => prev.filter((n) => n.id !== notificacionId));
       toast.success("Notificación eliminada");
     } catch (error) {
