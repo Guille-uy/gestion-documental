@@ -14,8 +14,8 @@ export function UsuariosPagina() {
     email: "",
     firstName: "",
     lastName: "",
-    Contrasena: "",
-    Rol: "READER",
+    password: "",
+    role: "READER",
     area: "",
   });
 
@@ -28,7 +28,7 @@ export function UsuariosPagina() {
   const fetchUsuarios = async () => {
     try {
       setIsLoading(true);
-      const response = await apiService.getUsuarios(Pagina, limit);
+      const response = await apiService.getUsers(Pagina, limit);
       setUsuarios(response.data.data.items);
       setTotal(response.data.data.total);
     } catch (error) {
@@ -42,14 +42,14 @@ export function UsuariosPagina() {
     e.preventDefault();
 
     try {
-      await apiService.createUsuario(formData);
+      await apiService.createUser(formData);
       toast.success("Usuario creado exitosamente");
       setFormData({
         email: "",
         firstName: "",
         lastName: "",
-        Contrasena: "",
-        Rol: "READER",
+        password: "",
+        role: "READER",
         area: "",
       });
       setShowCreateForm(false);
@@ -63,11 +63,11 @@ export function UsuariosPagina() {
     if (!window.confirm("Are you sure you want to Eliminar this Usuario?")) return;
 
     try {
-      await apiService.EliminarUsuario(UsuarioId);
-      toast.success("Usuario Eliminard successfully");
+      await apiService.deleteUser(UsuarioId);
+      toast.success("Usuario eliminado correctamente");
       fetchUsuarios();
-    } catch (error) {
-      toast.error("Failed to Eliminar Usuario");
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Error al eliminar usuario");
     }
   };
 
@@ -94,10 +94,10 @@ export function UsuariosPagina() {
               required
             />
             <Input
-              label="Contrasena"
-              type="Contrasena"
-              value={formData.Contrasena}
-              onChange={(e) => setFormData({ ...formData, Contrasena: e.target.value })}
+              label="Contraseña"
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
             />
             <Input
@@ -113,16 +113,15 @@ export function UsuariosPagina() {
               required
             />
             <select
-              value={formData.Rol}
-              onChange={(e) => setFormData({ ...formData, Rol: e.target.value })}
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
               className="px-3 py-2 border border-gray-300 rounded-lg"
             >
-              <option value="ADMIN">Admin</option>
-              <option value="QUALITY_MANAGER">Quality Manager</option>
-              <option value="DOCUMENT_OWNER">Document Owner</option>
-              <option value="REVerER">ReVerer</option>
-              <option value="APPROVER">Approver</option>
-              <option value="READER">Reader</option>
+              <option value="ADMIN">Administrador</option>
+              <option value="DOCUMENT_OWNER">Propietario de Documentos</option>
+              <option value="REVIEWER">Revisor</option>
+              <option value="APPROVER">Aprobador</option>
+              <option value="READER">Lector</option>
             </select>
             <Input
               label="Area"
@@ -159,7 +158,7 @@ export function UsuariosPagina() {
                     <td className="px-6 py-4 text-sm">{Usuario.email}</td>
                     <td className="px-6 py-4 text-sm">
                       <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-900">
-                        {Usuario.Rol}
+                        {Usuario.role}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm">{Usuario.area}</td>

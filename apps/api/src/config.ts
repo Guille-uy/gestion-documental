@@ -22,8 +22,8 @@ export const config = {
     process.env.GOOGLE_APPLICATION_CREDENTIALS || "./credentials-sa.json",
   GOOGLE_DRIVE_FOLDER_ID: process.env.GOOGLE_DRIVE_FOLDER_ID || "",
 
-  // CORS
-  CORS_ORIGIN: (process.env.CORS_ORIGIN || "http://localhost:5173").split(","),
+  // CORS — acepta CORS_ORIGIN (lista separada por comas) o FRONTEND_URL como fallback
+  CORS_ORIGIN: (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || "http://localhost:5173").split(","),
 
   // Logging
   LOG_LEVEL: process.env.LOG_LEVEL || "debug",
