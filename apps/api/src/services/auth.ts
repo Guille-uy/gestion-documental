@@ -30,12 +30,14 @@ export async function loginUser(email: string, password: string) {
     userId: user.id,
     email: user.email,
     role: user.role,
+    area: user.area,
   });
 
   const refreshToken = generateRefreshToken({
     userId: user.id,
     email: user.email,
     role: user.role,
+    area: user.area,
   });
 
   // Log the login action
@@ -84,6 +86,7 @@ export async function refreshAccessToken(refreshToken: string) {
     userId: user.id,
     email: user.email,
     role: user.role,
+    area: user.area,
   });
 
   return {

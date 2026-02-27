@@ -1,9 +1,12 @@
 ﻿import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiService } from "../services/api.js";
+import { useAuthStore } from "../store/auth.js";
 import { Button } from "../components/Button.js";
 import { Input } from "../components/Input.js";
 import toast from "react-hot-toast";
+
+const PRIVILEGED_ROLES = ["ADMIN", "QUALITY_MANAGER"];
 
 const STATUS_LABELS: Record<string,string> = { DRAFT:"Borrador", IN_REVIEW:"En Revision", APPROVED:"Aprobado", PUBLISHED:"Publicado", OBSOLETE:"Obsoleto" };
 const STATUS_COLORS: Record<string,string> = { DRAFT:"bg-gray-100 text-gray-900", IN_REVIEW:"bg-yellow-100 text-yellow-900", APPROVED:"bg-blue-100 text-blue-900", PUBLISHED:"bg-green-100 text-green-900", OBSOLETE:"bg-red-100 text-red-900" };
@@ -13,6 +16,8 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export function DocumentsListPage() {
+  const { user } = useAuthStore();
+  const isRestricted = !!user && !PRIVILEGED_ROLES.includes(user.role) && !!user.area;
   const [documents, setDocuments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -62,7 +67,16 @@ export function DocumentsListPage() {
             <option value="PUBLISHED">Publicado</option>
             <option value="OBSOLETE">Obsoleto</option>
           </select>
-          <Input placeholder="Filtrar por area..." name="area" value={filters.area} onChange={handleFilterChange} />
+          {isRestricted ? (
+            <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+              <svg className="w-4 h-4 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              <span className="text-xs font-medium text-blue-700 truncate">Área: {user?.area}</span>
+            </div>
+          ) : (
+            <Input placeholder="Filtrar por area..." name="area" value={filters.area} onChange={handleFilterChange} />
+          )}
           <select name="type" value={filters.type} onChange={handleFilterChange}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">Todos los tipos</option>

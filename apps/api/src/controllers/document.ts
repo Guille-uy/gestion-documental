@@ -1,4 +1,5 @@
-import { Request, Response } from "express";
+import { Response } from "express";
+import { PrismaClient } from "@prisma/client";
 import { asyncHandler } from "../middleware/error.js";
 import { AuthenticatedRequest } from "../middleware/auth.js";
 import {
@@ -14,6 +15,35 @@ import {
   createNewVersion,
 } from "../services/document.js";
 import { CreateDocumentSchema, UpdateDocumentSchema } from "@dms/shared";
+
+const prisma = new PrismaClient();
+
+// Roles that can access documents across all areas
+const PRIVILEGED_ROLES = ["ADMIN", "QUALITY_MANAGER"];
+// Roles that can access documents they are explicitly assigned to review (across areas)
+const REVIEW_ROLES = ["REVIEWER", "APPROVER"];
+
+/** Returns true if the user has access to the given document area */
+async function hasAreaAccess(
+  user: NonNullable<AuthenticatedRequest["user"]>,
+  documentId: string,
+  documentArea: string
+): Promise<boolean> {
+  // Privileged roles: full access
+  if (PRIVILEGED_ROLES.includes(user.role)) return true;
+  // No area assigned: skip restriction (backward compatible)
+  if (!user.area) return true;
+  // Same area: allow
+  if (documentArea === user.area) return true;
+  // REVIEWER / APPROVER: allow if assigned to a review task for this document
+  if (REVIEW_ROLES.includes(user.role)) {
+    const task = await prisma.reviewTask.findFirst({
+      where: { documentId, assignedTo: user.userId },
+    });
+    if (task) return true;
+  }
+  return false;
+}
 
 export const createDocumentHandler = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
@@ -62,10 +92,18 @@ export const uploadFileHandler = asyncHandler(
 );
 
 export const getDocumentHandler = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { documentId } = req.params;
+  async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: "Not authenticated" });
+    }
 
+    const { documentId } = req.params;
     const document = await getDocument(documentId);
+
+    // Area-based access control
+    if (!(await hasAreaAccess(req.user, documentId, document.area))) {
+      return res.status(403).json({ success: false, error: "Acceso denegado: el documento pertenece a otra área" });
+    }
 
     res.json({
       success: true,
@@ -176,16 +214,32 @@ export const publishDocumentHandler = asyncHandler(
 );
 
 export const listDocumentsHandler = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: "Not authenticated" });
+    }
+
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
 
-    const filters = {
+    const filters: {
+      status?: string;
+      area?: string;
+      type?: string;
+      search?: string;
+    } = {
       status: req.query.status as string | undefined,
       area: req.query.area as string | undefined,
       type: req.query.type as string | undefined,
       search: req.query.search as string | undefined,
     };
+
+    // Area-based access control:
+    // Non-privileged roles with an assigned area are restricted to that area only.
+    // Their requested area filter is ignored and replaced with their own area.
+    if (!PRIVILEGED_ROLES.includes(req.user.role) && req.user.area) {
+      filters.area = req.user.area;
+    }
 
     const result = await listDocuments(page, Math.min(limit, 100), filters);
 
@@ -203,6 +257,12 @@ export const downloadDocumentHandler = asyncHandler(
     }
 
     const { documentId } = req.params;
+
+    // Area access check before serving file
+    const docMeta = await getDocument(documentId);
+    if (!(await hasAreaAccess(req.user, documentId, docMeta.area))) {
+      return res.status(403).json({ success: false, error: "Acceso denegado: el documento pertenece a otra área" });
+    }
 
     const { content, fileName, mimeType } = await downloadDocument(documentId, req.user.userId);
 

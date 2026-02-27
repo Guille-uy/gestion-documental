@@ -3,10 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../components/Button.js";
 import { Input } from "../components/Input.js";
 import { apiService } from "../services/api.js";
+import { useAuthStore } from "../store/auth.js";
 import toast from "react-hot-toast";
+
+const PRIVILEGED_ROLES = ["ADMIN", "QUALITY_MANAGER"];
 
 export function CreateDocumentPage() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isRestricted = !!user && !PRIVILEGED_ROLES.includes(user.role) && !!user.area;
   const [isLoading, setIsLoading] = useState(false);
   const [areas, setAreas] = useState<any[]>([]);
   const [docTypes, setDocTypes] = useState<any[]>([]);
@@ -20,7 +25,11 @@ export function CreateDocumentPage() {
         setAreas(areasList);
         setDocTypes(typesList);
         if (typesList.length > 0) setFormData(f => ({ ...f, type: typesList[0].code }));
-        if (areasList.length > 0) setFormData(f => ({ ...f, area: areasList[0].name }));
+        // Pre-select user's area for restricted roles; default to first area for privileged
+        const defaultArea = (user?.area && isRestricted)
+          ? user.area
+          : (areasList.length > 0 ? areasList[0].name : "");
+        setFormData(f => ({ ...f, area: defaultArea }));
       })
       .catch(() => toast.error("Error al cargar configuración"));
   }, []);
@@ -72,7 +81,15 @@ export function CreateDocumentPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Área *</label>
-            {areas.length === 0 ? (
+            {isRestricted ? (
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 border border-gray-300 rounded-lg">
+                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <span className="text-sm text-gray-700 font-medium">{user?.area}</span>
+                <span className="text-xs text-gray-400 ml-auto">fija</span>
+              </div>
+            ) : areas.length === 0 ? (
               <p className="text-sm text-gray-500 italic">Cargando áreas...</p>
             ) : (
               <select name="area" value={formData.area} onChange={handleChange} required className={selectClass}>
