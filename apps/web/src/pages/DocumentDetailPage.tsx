@@ -405,7 +405,7 @@ export function DocumentDetailPage() {
         </div>
       )}
 
-      <DocumentFlowDiagram currentStatus={doc.status} />
+      <DocumentFlowDiagram currentStatus={doc.status} doc={doc} />
 
       {doc.versions && doc.versions.length > 0 && (
         <div className="bg-white rounded-lg shadow p-6">

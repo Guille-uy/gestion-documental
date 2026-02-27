@@ -1,5 +1,35 @@
 import React from "react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
+type StepState = "completed" | "active" | "pending";
+
+const STATUS_ORDER = ["DRAFT", "IN_REVIEW", "PUBLISHED", "OBSOLETE"];
+
+function getStepState(stepStatus: string, currentStatus: string): StepState {
+  const stepIdx = STATUS_ORDER.indexOf(stepStatus);
+  const currentIdx = STATUS_ORDER.indexOf(currentStatus);
+  if (stepIdx < currentIdx) return "completed";
+  if (stepIdx === currentIdx) return "active";
+  return "pending";
+}
+
+function fmtDate(dateStr: string | null | undefined) {
+  if (!dateStr) return null;
+  try {
+    return format(new Date(dateStr), "d MMM yyyy, HH:mm", { locale: es });
+  } catch {
+    return null;
+  }
+}
+
+interface StepData {
+  status: string;
+  title: string;
+  subtitle: string;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface StepProps {
   label: string;
   status: string;
@@ -10,161 +40,136 @@ interface StepProps {
   isCurrent?: boolean;
 }
 
-function Step({ label, status, color, who, description, isCurrent }: StepProps) {
-  return (
-    <div
-      className={`relative flex flex-col items-center text-center ${isCurrent ? "scale-105" : ""}`}
-      style={{ minWidth: 120, maxWidth: 150 }}
-    >
-      <div
-        className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-white text-lg shadow-md mb-2 border-4 ${
-          isCurrent ? "border-blue-500 ring-4 ring-blue-200" : "border-transparent"
-        }`}
-        style={{ backgroundColor: color }}
-      >
-        {statusIcon(status)}
-      </div>
-      <span className="text-xs font-bold text-gray-800 uppercase tracking-wide">{label}</span>
-      <span className="text-xs text-gray-500 mt-0.5 italic">{who}</span>
-      <span className="text-xs text-gray-600 mt-1 leading-tight">{description}</span>
-      {isCurrent && (
-        <span className="mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-semibold">
-          Estado actual
-        </span>
-      )}
-    </div>
-  );
-}
-
-function Arrow({ label }: { label: string }) {
-  return (
-    <div className="flex flex-col items-center mx-1 mt-4">
-      <div className="text-xs text-gray-400 mb-1 whitespace-nowrap">{label}</div>
-      <div className="text-gray-400 text-xl">→</div>
-    </div>
-  );
-}
-
-function statusIcon(status: string) {
-  const icons: Record<string, string> = {
-    DRAFT: "✏️",
-    IN_REVIEW: "🔍",
-    CHANGES_REQUESTED: "↩",
-    PUBLISHED: "✅",
-    OBSOLETE: "📦",
-  };
-  return icons[status] || "?";
-}
-
-const STEPS: StepProps[] = [
+const STEPS: StepData[] = [
   {
-    label: "Borrador",
     status: "DRAFT",
-    color: "#6B7280",
-    who: "Propietario",
-    description: "Redacción y carga del archivo del documento.",
-    isActive: true,
+    title: "Borrador",
+    subtitle: "El propietario redacta y carga el archivo del documento",
   },
   {
-    label: "En Revisión",
     status: "IN_REVIEW",
-    color: "#D97706",
-    who: "Revisor / Aprobador",
-    description: "Uno o más revisores evalúan el contenido.",
-    isActive: true,
+    title: "En Revisión",
+    subtitle: "Revisores y aprobadores analizan el contenido",
   },
   {
-    label: "Publicado",
     status: "PUBLISHED",
-    color: "#059669",
-    who: "Aprobador",
-    description: "Documento vigente. Notifica a los lectores del área.",
-    isActive: true,
+    title: "Publicado",
+    subtitle: "Documento vigente — visible y notificado a los lectores del área",
   },
   {
-    label: "Obsoleto",
     status: "OBSOLETE",
-    color: "#9CA3AF",
-    who: "Sistema",
-    description: "Versión anterior, reemplazada por nueva versión.",
-    isActive: true,
+    title: "Obsoleto",
+    subtitle: "Reemplazado por una versión más reciente, conservado como historial",
   },
 ];
 
-interface Props {
-  currentStatus?: string;
+const STATE_BADGE: Record<StepState, string> = {
+  completed: "bg-green-100 text-green-700",
+  active: "bg-blue-100 text-blue-700",
+  pending: "bg-slate-100 text-slate-500",
+};
+
+const STATE_LABEL: Record<StepState, string> = {
+  completed: "Completado",
+  active: "En curso",
+  pending: "Pendiente",
+};
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z" />
+    </svg>
+  );
 }
 
-export function DocumentFlowDiagram({ currentStatus }: Props) {
+interface Props {
+  currentStatus?: string;
+  doc?: any;
+}
+
+export function DocumentFlowDiagram({ currentStatus = "DRAFT", doc }: Props) {
+  // Map each step to a relevant date from the document
+  const dateFor: Record<string, string | undefined> = {
+    DRAFT: doc?.createdAt,
+    IN_REVIEW: currentStatus === "IN_REVIEW" || STATUS_ORDER.indexOf(currentStatus) > STATUS_ORDER.indexOf("IN_REVIEW")
+      ? doc?.updatedAt
+      : undefined,
+    PUBLISHED: doc?.publishedAt,
+    OBSOLETE: currentStatus === "OBSOLETE" ? doc?.updatedAt : undefined,
+  };
+
+  const visibleSteps = currentStatus === "OBSOLETE" ? STEPS : STEPS.slice(0, 3);
+
   return (
-    <div className="bg-white rounded-lg shadow p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-bold text-gray-900">Flujo de Control Documental</h2>
+    <div className="bg-white rounded-lg shadow p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="font-bold text-gray-900 text-base">Estado del documento</h2>
         <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">ISO 22000 §7.5</span>
       </div>
 
-      <p className="text-xs text-gray-500">
-        Conforme a la norma ISO 22000:2018 cláusula 7.5 — Información documentada, los documentos
-        deben crearse, actualizarse y controlarse mediante un proceso formal de revisión y aprobación.
-      </p>
+      <div className="space-y-0">
+        {visibleSteps.map((step, idx) => {
+          const state = getStepState(step.status, currentStatus);
+          const isLast = idx === visibleSteps.length - 1;
+          const dateStr = fmtDate(dateFor[step.status]);
 
-      {/* Main flow */}
-      <div className="overflow-x-auto pb-2">
-        <div className="flex items-start gap-0 min-w-max mx-auto justify-center flex-wrap gap-y-4">
-          {/* DRAFT */}
-          <Step {...STEPS[0]} isCurrent={currentStatus === "DRAFT"} />
-          <Arrow label="Enviar a Revisión" />
-
-          {/* IN_REVIEW block with branch */}
-          <div className="flex flex-col items-center gap-1">
-            <Step {...STEPS[1]} isCurrent={currentStatus === "IN_REVIEW"} />
-            {/* Branch: approve or request changes */}
-            <div className="flex gap-4 mt-1">
-              <div className="text-center">
-                <div className="text-xs text-green-600 font-medium">✓ Aprueba</div>
+          return (
+            <div key={step.status} className="flex gap-4">
+              {/* Circle + connector line */}
+              <div className="flex flex-col items-center">
+                <div
+                  className={[
+                    "w-10 h-10 rounded-full flex items-center justify-center shrink-0 z-10 font-semibold text-sm transition-all",
+                    state === "completed" ? "bg-slate-900 text-white" : "",
+                    state === "active" ? "border-2 border-slate-900 text-slate-900 bg-white ring-4 ring-blue-100" : "",
+                    state === "pending" ? "border-2 border-slate-200 text-slate-400 bg-white" : "",
+                  ].join(" ")}
+                >
+                  {state === "completed" ? <CheckIcon /> : <span>{idx + 1}</span>}
+                </div>
+                {!isLast && (
+                  <div
+                    className={`w-0.5 flex-1 my-1 min-h-8 ${
+                      state === "completed" ? "bg-slate-900" : "bg-slate-200"
+                    }`}
+                  />
+                )}
               </div>
-              <div className="text-center">
-                <div className="text-xs text-red-500 font-medium">↩ Solicita cambios</div>
-                <div className="text-xs text-gray-400">→ vuelve a Borrador</div>
+
+              {/* Text content */}
+              <div className={`flex-1 ${isLast ? "pb-0" : "pb-6"}`}>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span
+                    className={`font-semibold text-sm ${
+                      state === "pending" ? "text-slate-400" : "text-slate-900"
+                    }`}
+                  >
+                    {step.title}
+                  </span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATE_BADGE[state]}`}>
+                    {STATE_LABEL[state]}
+                  </span>
+                </div>
+                <p className={`text-xs mt-0.5 ${state === "pending" ? "text-slate-400" : "text-slate-500"}`}>
+                  {step.subtitle}
+                </p>
+                {dateStr ? (
+                  <p className="text-xs text-slate-400 mt-1">{dateStr}</p>
+                ) : state === "active" ? (
+                  <p className="text-xs text-blue-400 mt-1">En este estado ahora</p>
+                ) : null}
               </div>
             </div>
-          </div>
-
-          <Arrow label="Publicar" />
-
-          {/* PUBLISHED */}
-          <Step {...STEPS[2]} isCurrent={currentStatus === "PUBLISHED"} />
-          <Arrow label="Nueva versión" />
-
-          {/* OBSOLETE */}
-          <Step {...STEPS[3]} isCurrent={currentStatus === "OBSOLETE"} />
-        </div>
+          );
+        })}
       </div>
 
-      {/* Nueva versión loop note */}
-      <div className="border-t pt-3 text-xs text-gray-500 bg-blue-50 rounded p-3">
-        <strong className="text-blue-800">🔄 Revisión periódica (ISO 22000 §7.5.3b):</strong> Cuando un documento publicado requiere
-        actualización, se crea una nueva versión — el documento vuelve a Borrador, la versión anterior
-        pasa a Obsoleta y se conserva en el historial. Cada versión nueva debe recorrer el ciclo
-        completo de revisión y aprobación.
-      </div>
-
-      {/* Status legend */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 border-t pt-3">
-        {[
-          { label: "Borrador", color: "#6B7280", desc: "Solo visible al propietario" },
-          { label: "En Revisión", color: "#D97706", desc: "Los revisores tienen acceso" },
-          { label: "Publicado", color: "#059669", desc: "Visible a todos en el área" },
-          { label: "Obsoleto", color: "#9CA3AF", desc: "Solo consulta histórica" },
-        ].map((s) => (
-          <div key={s.label} className="flex items-start gap-2">
-            <div className="w-3 h-3 rounded-full mt-0.5 shrink-0" style={{ backgroundColor: s.color }} />
-            <div>
-              <div className="text-xs font-semibold text-gray-800">{s.label}</div>
-              <div className="text-xs text-gray-500">{s.desc}</div>
-            </div>
-          </div>
-        ))}
+      <div className="border-t pt-3 mt-4 text-xs text-slate-400">
+        Conforme ISO 22000:2018 §7.5 — Información documentada.{" "}
+        <span className="text-blue-500">
+          Al publicar una nueva versión el documento vuelve a Borrador y la versión anterior queda como Obsoleta.
+        </span>
       </div>
     </div>
   );
