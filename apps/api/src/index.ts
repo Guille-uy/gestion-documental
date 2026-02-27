@@ -51,6 +51,7 @@ app.get("/health", (req: Request, res: Response) => {
   res.json({
     success: true,
     message: "API is running",
+    version: "manual-cors-v1",
     timestamp: new Date().toISOString(),
   });
 });
