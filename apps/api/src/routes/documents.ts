@@ -11,6 +11,8 @@ import {
   listDocumentsHandler,
   downloadDocumentHandler,
   createNewVersionHandler,
+  confirmReadHandler,
+  getConfirmationsHandler,
 } from "../controllers/document.js";
 import { authMiddleware } from "../middleware/auth.js";
 
@@ -45,5 +47,9 @@ router.post("/:documentId/submit-review", submitForReviewHandler);
 router.post("/:documentId/reviews/:reviewTaskId/approve", approveReviewHandler);
 router.post("/:documentId/publish", publishDocumentHandler);
 router.post("/:documentId/new-version", createNewVersionHandler);
+
+// Read confirmation (#12)
+router.post("/:documentId/confirm-read", confirmReadHandler);
+router.get("/:documentId/confirmations", getConfirmationsHandler);
 
 export default router;

@@ -1,6 +1,11 @@
 import { PrismaClient } from "@prisma/client";
 import { NotFoundError, ValidationError, AppError } from "../utils/errors.js";
 import { logger } from "../utils/logger.js";
+import {
+  emailDocumentSubmittedForReview,
+  emailChangesRequested,
+  emailDocumentPublished,
+} from "./email.js";
 
 const prisma = new PrismaClient();
 
@@ -255,7 +260,7 @@ export async function submitForReview(
       },
     });
 
-    // Create notification
+    // Create in-app notification
     await prisma.notification.create({
       data: {
         userId: reviewerId,
@@ -267,6 +272,20 @@ export async function submitForReview(
         documentId,
       },
     });
+
+    // Send email notification (#6)
+    const reviewer = await prisma.user.findUnique({ where: { id: reviewerId } });
+    const author = await prisma.user.findUnique({ where: { id: userId } });
+    if (reviewer && author) {
+      emailDocumentSubmittedForReview({
+        to: reviewer.email,
+        reviewerName: `${reviewer.firstName} ${reviewer.lastName}`,
+        docTitle: document.title,
+        docCode: document.code,
+        docId: documentId,
+        authorName: `${author.firstName} ${author.lastName}`,
+      }).catch(() => {});
+    }
   }
 
   // Log the action
@@ -350,6 +369,21 @@ export async function approveReview(
         documentId,
       },
     });
+
+    // Send email (#6)
+    const owner = await prisma.user.findUnique({ where: { id: document.createdBy } });
+    const reviewer = await prisma.user.findUnique({ where: { id: userId } });
+    if (owner && reviewer) {
+      emailChangesRequested({
+        to: owner.email,
+        ownerName: `${owner.firstName} ${owner.lastName}`,
+        docTitle: document.title,
+        docCode: document.code,
+        docId: documentId,
+        reviewerName: `${reviewer.firstName} ${reviewer.lastName}`,
+        comments,
+      }).catch(() => {});
+    }
 
     logger.info("Changes requested for document", { documentId });
   }
@@ -437,6 +471,16 @@ export async function publishDocument(
         documentId,
       },
     });
+
+    // Send email (#6)
+    emailDocumentPublished({
+      to: reader.email,
+      readerName: `${reader.firstName} ${reader.lastName}`,
+      docTitle: document.title,
+      docCode: document.code,
+      docId: documentId,
+      area: document.area,
+    }).catch(() => {});
   }
 
   // Log the action
@@ -603,6 +647,60 @@ export async function createNewVersion(documentId: string, changes: string | und
 
   logger.info("New document version created", { documentId, newVersionLabel });
   return formatDocument(updated);
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   #12 — Confirmación de lectura
+───────────────────────────────────────────────────────────────── */
+
+export async function confirmDocumentRead(documentId: string, userId: string) {
+  const document = await prisma.document.findUnique({ where: { id: documentId } });
+  if (!document) throw new NotFoundError("Document not found");
+  if (document.status !== "PUBLISHED") {
+    throw new ValidationError("Solo se pueden confirmar documentos publicados");
+  }
+
+  // Upsert: if already confirmed, return existing
+  const confirmation = await prisma.documentReadConfirmation.upsert({
+    where: { documentId_userId: { documentId, userId } },
+    create: { documentId, userId },
+    update: { confirmedAt: new Date() },
+    include: {
+      user: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId,
+      action: "CONFIRM_READ",
+      entityType: "Document",
+      entityId: documentId,
+      documentId,
+    },
+  });
+
+  return confirmation;
+}
+
+export async function getDocumentReadConfirmations(documentId: string) {
+  const document = await prisma.document.findUnique({ where: { id: documentId } });
+  if (!document) throw new NotFoundError("Document not found");
+
+  const confirmations = await prisma.documentReadConfirmation.findMany({
+    where: { documentId },
+    include: {
+      user: { select: { id: true, firstName: true, lastName: true, email: true, role: true, area: true } },
+    },
+    orderBy: { confirmedAt: "desc" },
+  });
+
+  // Total readers in same area for coverage calc
+  const totalReadersInArea = await prisma.user.count({
+    where: { area: document.area, role: "READER", isActive: true },
+  });
+
+  return { confirmations, totalReadersInArea };
 }
 
 // Helper functions

@@ -13,6 +13,8 @@ import {
   listDocuments,
   downloadDocument,
   createNewVersion,
+  confirmDocumentRead,
+  getDocumentReadConfirmations,
 } from "../services/document.js";
 import { CreateDocumentSchema, UpdateDocumentSchema } from "@dms/shared";
 
@@ -283,4 +285,28 @@ export const createNewVersionHandler = asyncHandler(
     const document = await createNewVersion(documentId, changes, req.user.userId);
     res.status(201).json({ success: true, data: document });
   }
+);
+
+// #12 — Confirmación de lectura
+export const confirmReadHandler = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: "Not authenticated" });
+    }
+    const { documentId } = req.params;
+    const confirmation = await confirmDocumentRead(documentId, req.user.userId);
+    res.json({ success: true, data: confirmation });
+  }
+);
+
+export const getConfirmationsHandler = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: "Not authenticated" });
+    }
+    const { documentId } = req.params;
+    const result = await getDocumentReadConfirmations(documentId);
+    res.json({ success: true, data: result });
+  }
+);
 );

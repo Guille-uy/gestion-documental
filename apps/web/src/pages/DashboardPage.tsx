@@ -19,6 +19,7 @@ interface DashboardData {
   unreadNotifications: number;
   byArea: { name: string; count: number }[];
   staleDocsDetail: { id: string; code: string; title: string; days: number }[];
+  expiringDocs: { id: string; code: string; title: string; daysLeft: number }[];
   recentDocs: any[];
   auditLogs: any[];
 }
@@ -91,6 +92,13 @@ export function DashboardPage() {
           .sort((a, b) => b.count - a.count)
           .slice(0, 6);
 
+        // #11 Expiring documents (nextReviewDate within 30 days)
+        const expiringDocs = docs
+          .filter(d => d.nextReviewDate && differenceInDays(new Date(d.nextReviewDate), now) <= 30 && differenceInDays(new Date(d.nextReviewDate), now) >= -1)
+          .map(d => ({ id: d.id, code: d.code, title: d.title, daysLeft: differenceInDays(new Date(d.nextReviewDate), now) }))
+          .sort((a, b) => a.daysLeft - b.daysLeft)
+          .slice(0, 6);
+
         setData({
           total: docsRes.data.data.total,
           draft,
@@ -103,6 +111,7 @@ export function DashboardPage() {
           unreadNotifications: unreadRes.data.data.count ?? 0,
           byArea,
           staleDocsDetail,
+          expiringDocs,
           recentDocs: docs.slice(0, 5),
           auditLogs: auditItems,
         });
@@ -302,6 +311,44 @@ export function DashboardPage() {
           </div>
         </GradientCard>
       </div>
+
+      {/* ── #11 Revisiones próximas (expiry alerts) ── */}
+      {data.expiringDocs.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-amber-100 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-50 border border-amber-200 text-base">📅</span>
+              <div>
+                <h2 className="text-sm font-bold text-gray-900">Revisiones próximas</h2>
+                <p className="text-xs text-gray-500">Documentos con fecha de revisión en los próximos 30 días</p>
+              </div>
+            </div>
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+              {data.expiringDocs.length} pendiente{data.expiringDocs.length > 1 ? "s" : ""}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {data.expiringDocs.map(d => {
+              const isOverdue = d.daysLeft < 0;
+              const isCritical = d.daysLeft <= 7;
+              const isWarning = d.daysLeft <= 14;
+              const color = isOverdue || isCritical ? "border-red-200 bg-red-50" : isWarning ? "border-amber-200 bg-amber-50" : "border-blue-100 bg-blue-50";
+              const badge = isOverdue ? "bg-red-100 text-red-700" : isCritical ? "bg-red-50 text-red-600" : isWarning ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-700";
+              const label = isOverdue ? "Vencido" : d.daysLeft === 0 ? "Hoy" : `${d.daysLeft}d`;
+              return (
+                <Link key={d.id} to={`/documents/${d.id}`}
+                  className={`flex items-center justify-between rounded-lg border px-3.5 py-2.5 hover:shadow-sm transition-all ${color}`}>
+                  <div className="min-w-0">
+                    <p className="text-xs font-mono text-gray-500">{d.code}</p>
+                    <p className="text-sm font-medium text-gray-900 truncate">{d.title}</p>
+                  </div>
+                  <span className={`ml-3 shrink-0 text-xs font-bold px-2 py-1 rounded-md ${badge}`}>{label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── Middle row ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

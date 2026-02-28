@@ -43,10 +43,11 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  notifications Notification[]
-  reviewTasks   ReviewTask[]
-  auditLogs     AuditLog[]
-  comments      Comment[]
+  notifications     Notification[]
+  reviewTasks       ReviewTask[]
+  auditLogs         AuditLog[]
+  comments          Comment[]
+  readConfirmations DocumentReadConfirmation[]
 
   @@map("users")
 }
@@ -62,17 +63,19 @@ model Document {
   currentVersionLabel String         @default("v1.0")
   googleDriveFileId   String?        @default("")
   publishedAt         DateTime?
+  nextReviewDate      DateTime?      // #11 - fecha de revisión periódica ISO
   reviewedBy          String?
   createdBy           String
   updatedBy           String
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
 
-  versions      DocumentVersion[]
-  reviewTasks   ReviewTask[]
-  auditLogs     AuditLog[]
-  notifications Notification[]
-  comments      Comment[]
+  versions           DocumentVersion[]
+  reviewTasks        ReviewTask[]
+  auditLogs          AuditLog[]
+  notifications      Notification[]
+  comments           Comment[]
+  readConfirmations  DocumentReadConfirmation[]
 
   @@map("documents")
 }
@@ -169,6 +172,20 @@ model Notification {
   document Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
 
   @@map("notifications")
+}
+
+// #12 - Firma de conformidad: registra que un usuario leyó y confirmó un documento publicado
+model DocumentReadConfirmation {
+  id          String   @id @default(cuid())
+  documentId  String
+  userId      String
+  confirmedAt DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, userId])
+  @@map("document_read_confirmations")
 }
 
 model AuditLog {

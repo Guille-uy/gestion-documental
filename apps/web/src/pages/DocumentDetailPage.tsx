@@ -6,7 +6,7 @@ import { apiService } from "../services/api.js";
 import { useAuthStore } from "../store/auth.js";
 import { DocumentFlowDiagram } from "../components/DocumentFlowDiagram.js";
 import toast from "react-hot-toast";
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
 export function DocumentDetailPage() {
@@ -21,6 +21,10 @@ export function DocumentDetailPage() {
   const [showNewVersionForm, setShowNewVersionForm] = useState(false);
   const [newVersionChanges, setNewVersionChanges] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  // #2 PDF preview, #12 confirm read
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [confirmReadDone, setConfirmReadDone] = useState(false);
+  const [confirmations, setConfirmations] = useState<{ confirmed: number; total: number } | null>(null);
   const [availableReviewers, setAvailableReviewers] = useState<any[]>([]);
   const [selectedReviewers, setSelectedReviewers] = useState<string[]>([]);
   const [reviewComentario, setReviewComentario] = useState("");
@@ -33,6 +37,10 @@ export function DocumentDetailPage() {
     fetchDocument();
     fetchReviewers();
   }, [documentId]);
+
+  useEffect(() => {
+    if (doc?.status === "PUBLISHED") fetchConfirmations();
+  }, [doc?.status]);
 
   const fetchDocument = async () => {
     if (!documentId) return;
@@ -182,6 +190,50 @@ export function DocumentDetailPage() {
     }
   };
 
+  // #2 PDF preview inline
+  const handlePreviewDocument = async () => {
+    if (!documentId) return;
+    try {
+      if (previewUrl) { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); return; }
+      const response = await apiService.downloadDocument(documentId);
+      const mimeType = response.headers["content-type"] || "application/pdf";
+      const blob = new Blob([response.data], { type: mimeType });
+      const url = window.URL.createObjectURL(blob);
+      setPreviewUrl(url);
+      setTimeout(() => document.getElementById("pdf-preview")?.scrollIntoView({ behavior: "smooth", block: "start" }), 200);
+    } catch {
+      toast.error("Error al previsualizar el archivo");
+    }
+  };
+
+  // #12 Confirmar lectura
+  const handleConfirmRead = async () => {
+    if (!documentId) return;
+    try {
+      await apiService.confirmDocumentRead(documentId);
+      setConfirmReadDone(true);
+      toast.success("✅ Lectura confirmada correctamente");
+      // Refresh confirmations count
+      const r = await apiService.getDocumentReadConfirmations(documentId);
+      setConfirmations({ confirmed: r.data.data.confirmed, total: r.data.data.total });
+    } catch (error: any) {
+      if (error.response?.status === 409) {
+        setConfirmReadDone(true);
+        toast("Ya habías confirmado la lectura de este documento");
+      } else {
+        toast.error("Error al confirmar lectura");
+      }
+    }
+  };
+
+  const fetchConfirmations = async () => {
+    if (!documentId || doc?.status !== "PUBLISHED") return;
+    try {
+      const r = await apiService.getDocumentReadConfirmations(documentId);
+      setConfirmations({ confirmed: r.data.data.confirmed, total: r.data.data.total });
+    } catch {}
+  };
+
   const toggleReviewer = (userId: string) => {
     setSelectedReviewers(prev =>
       prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
@@ -213,12 +265,31 @@ export function DocumentDetailPage() {
         <InfoItem label="Área" value={doc.area} />
         <InfoItem label="Versión" value={doc.currentVersionLabel} />
         <InfoItem label="Creado" value={formatDistanceToNow(new Date(doc.createdAt), { addSuffix: true, locale: es })} />
+        {doc.nextReviewDate && (
+          <InfoItem label="Próxima revisión" value={format(new Date(doc.nextReviewDate), "dd/MM/yyyy")} />
+        )}
+        {confirmations !== null && (
+          <InfoItem label="Lecturas confirmadas" value={`${confirmations.confirmed} / ${confirmations.total}`} />
+        )}
       </div>
 
       {doc.description && (
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="font-bold text-gray-900 mb-2">Descripción</h2>
           <p className="text-gray-600">{doc.description}</p>
+        </div>
+      )}
+
+      {/* #2 PDF inline preview */}
+      {previewUrl && (
+        <div id="pdf-preview" className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold text-gray-900">Previsualización del documento</h2>
+            <button onClick={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}
+              className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+          </div>
+          <iframe src={previewUrl} className="w-full rounded border border-gray-200" style={{ height: "640px" }}
+            title="Vista previa del documento" />
         </div>
       )}
 
@@ -232,6 +303,19 @@ export function DocumentDetailPage() {
           )}
           {tieneArchivo && (
             <Button onClick={handleDownloadDocument} variant="outline" size="sm">Descargar</Button>
+          )}
+          {tieneArchivo && (
+            <Button onClick={handlePreviewDocument} variant="outline" size="sm">
+              {previewUrl ? "✕ Cerrar preview" : "🔍 Previsualizar PDF"}
+            </Button>
+          )}
+          {doc.status === "PUBLISHED" && !confirmReadDone && (
+            <Button onClick={handleConfirmRead} variant="outline" size="sm">✅ Confirmar lectura</Button>
+          )}
+          {confirmReadDone && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg font-medium">
+              ✅ Lectura confirmada
+            </span>
           )}
           {doc.status === "DRAFT" && doc.createdBy === user?.id && !tieneArchivo && (
             <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">

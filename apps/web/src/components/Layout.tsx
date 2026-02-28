@@ -74,6 +74,12 @@ export function Layout({ children }: LayoutProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  // #1 Global search
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showSearchDrop, setShowSearchDrop] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchUnreadCount = async () => {
@@ -94,10 +100,27 @@ export function Layout({ children }: LayoutProps) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setShowDropdown(false);
       }
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowSearchDrop(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Debounced global search
+  useEffect(() => {
+    if (!searchQuery.trim()) { setSearchResults([]); setShowSearchDrop(false); return; }
+    const timer = setTimeout(async () => {
+      try {
+        setIsSearching(true);
+        const r = await apiService.listDocuments({ search: searchQuery, limit: 7, page: 1 });
+        setSearchResults(r.data.data.items || []);
+        setShowSearchDrop(true);
+      } catch {} finally { setIsSearching(false); }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Close mobile menu on navigation
   useEffect(() => {
@@ -189,6 +212,39 @@ export function Layout({ children }: LayoutProps) {
 
                   {/* separator before profile */}
                   <span className="nav-sep ml-1" />
+
+                  {/* #1 Global search */}
+                  <div className="relative" ref={searchRef}>
+                    <div className="relative">
+                      <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
+                      </svg>
+                      {isSearching && <svg className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>}
+                      <input
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        onFocus={() => searchResults.length > 0 && setShowSearchDrop(true)}
+                        onKeyDown={e => e.key === "Escape" && (setSearchQuery(""), setShowSearchDrop(false))}
+                        placeholder="Buscar documentos..."
+                        className="pl-8 pr-3 py-1.5 w-48 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:w-64 transition-all"
+                      />
+                    </div>
+                    {showSearchDrop && (
+                      <div className="absolute top-full left-0 mt-1 w-80 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden">
+                        {searchResults.length === 0 ? (
+                          <p className="px-4 py-3 text-sm text-gray-500">Sin resultados para "{searchQuery}"</p>
+                        ) : searchResults.map(doc => (
+                          <button key={doc.id} onClick={() => { navigate(`/documents/${doc.id}`); setSearchQuery(""); setShowSearchDrop(false); }}
+                            className="w-full text-left px-4 py-2.5 hover:bg-blue-50 transition-colors border-b border-gray-50 last:border-0">
+                            <p className="text-xs font-medium text-gray-900 truncate">{doc.title}</p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">{doc.code} · {doc.status}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <span className="nav-sep" />
 
                   {/* ── Profile dropdown ── */}
                   <div className="relative" ref={dropdownRef}>

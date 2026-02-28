@@ -201,6 +201,15 @@ class ApiService {
   getAuditLogs(params: any = {}) {
     return this.client.get("/audit", { params });
   }
+
+  // #12 — Read confirmations
+  confirmDocumentRead(documentId: string) {
+    return this.client.post(`/documents/${documentId}/confirm-read`);
+  }
+
+  getDocumentReadConfirmations(documentId: string) {
+    return this.client.get(`/documents/${documentId}/confirmations`);
+  }
 }
 
 export const apiService = new ApiService();
