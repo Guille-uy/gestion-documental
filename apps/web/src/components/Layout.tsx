@@ -8,6 +8,70 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
+/* ── Pill nav CSS (desktop) ───────────────────────────────── */
+const PILL_STYLE = `
+.nav-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 60%, #3b82f6 100%);
+  box-shadow: 0 4px 14px rgba(37,99,235,0.45);
+}
+.nav-icon-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: rgba(255,255,255,0.85);
+  transition: all 0.22s ease;
+  text-decoration: none;
+}
+.nav-icon-btn:hover {
+  color: #fff;
+  transform: translateY(-3px);
+  background: rgba(255,255,255,0.15);
+}
+.nav-icon-btn.active {
+  color: #fff;
+  background: rgba(255,255,255,0.22);
+  box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.5);
+}
+.nav-sep { width:1px; height:22px; background:rgba(255,255,255,0.25); margin:0 2px; }
+/* tooltip */
+.nav-icon-btn .tip {
+  position: absolute;
+  top: calc(-100% - 10px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.7);
+  transform-origin: bottom center;
+  background: #0f172a;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 4px 9px;
+  border-radius: 6px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.nav-icon-btn .tip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #0f172a;
+}
+.nav-icon-btn:hover .tip { opacity:1; transform:translateX(-50%) scale(1); }
+`;
+
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: "Administrador",
   QUALITY_MANAGER: "Gestión de Calidad",
@@ -66,46 +130,25 @@ export function Layout({ children }: LayoutProps) {
 
   const isAdmin = user?.role === "ADMIN" || user?.role === "QUALITY_MANAGER";
 
+  /* ── icon data shared between pill (desktop) and drawer (mobile) ── */
   const navLinks = [
-    { to: "/dashboard", label: "Dashboard", icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-      </svg>
-    )},
-    { to: "/flujo-iso", label: "Flujo ISO", icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-      </svg>
-    )},
-    { to: "/documents", label: "Documentos", icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
-    )},
-    { to: "/notifications", label: "Notificaciones", badge: unreadCount, icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-      </svg>
-    )},
+    { to: "/dashboard", label: "Dashboard",
+      icon5: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg> },
+    { to: "/flujo-iso", label: "Flujo ISO",
+      icon5: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg> },
+    { to: "/documents", label: "Documentos",
+      icon5: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg> },
+    { to: "/notifications", label: "Notificaciones", badge: unreadCount,
+      icon5: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg> },
   ];
 
   const adminLinks = [
-    { to: "/users", label: "Usuarios", icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-      </svg>
-    )},
-    { to: "/audit", label: "Auditoría", icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-      </svg>
-    )},
-    { to: "/config", label: "Configuración", icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-    )},
+    { to: "/users", label: "Usuarios",
+      icon5: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> },
+    { to: "/audit", label: "Auditoría",
+      icon5: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg> },
+    { to: "/config", label: "Configuración",
+      icon5: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg> },
   ];
 
   const allLinks = isAdmin ? [...navLinks, ...adminLinks] : navLinks;
@@ -116,6 +159,8 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <style>{PILL_STYLE}</style>
+
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -131,51 +176,42 @@ export function Layout({ children }: LayoutProps) {
 
             {user && (
               <>
-                {/* ── Desktop nav ── */}
-                <div className="hidden md:flex items-center gap-1">
-                  {navLinks.map(({ to, label, badge, icon }) => (
-                    <Link
-                      key={to}
-                      to={to}
-                      className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                        isActive(to)
-                          ? "bg-blue-100 text-blue-700"
-                          : "text-gray-600 hover:bg-gray-100"
-                      }`}
-                    >
-                      {icon}
-                      {label}
-                      {badge != null && badge > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                          {badge}
-                        </span>
-                      )}
-                    </Link>
-                  ))}
+                {/* ── Desktop: icon pill ── */}
+                <div className="hidden md:flex items-center gap-4">
+                  <div className="nav-pill">
+                    {navLinks.map(({ to, label, badge, icon5 }) => (
+                      <Link key={to} to={to} className={`nav-icon-btn${isActive(to) ? " active" : ""}`}>
+                        <span className="tip">{label}</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24">{icon5.props.children}</svg>
+                        {badge != null && badge > 0 && (
+                          <span style={{
+                            position:"absolute", top:0, right:0,
+                            background:"#ef4444", color:"#fff",
+                            fontSize:9, fontWeight:700, borderRadius:999,
+                            minWidth:15, height:15, display:"flex",
+                            alignItems:"center", justifyContent:"center",
+                            padding:"0 3px",
+                            border:"1.5px solid #2563eb",
+                          }}>{badge}</span>
+                        )}
+                      </Link>
+                    ))}
 
-                  {isAdmin && (
-                    <>
-                      <span className="w-px h-5 bg-gray-200 mx-1" />
-                      {adminLinks.map(({ to, label, icon }) => (
-                        <Link
-                          key={to}
-                          to={to}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                            isActive(to)
-                              ? "bg-blue-100 text-blue-700"
-                              : "text-gray-600 hover:bg-gray-100"
-                          }`}
-                        >
-                          {icon}
-                          {label}
-                        </Link>
-                      ))}
-                    </>
-                  )}
-                </div>
+                    {isAdmin && (
+                      <>
+                        <span className="nav-sep" />
+                        {adminLinks.map(({ to, label, icon5 }) => (
+                          <Link key={to} to={to} className={`nav-icon-btn${isActive(to) ? " active" : ""}`}>
+                            <span className="tip">{label}</span>
+                            <svg width="20" height="20" viewBox="0 0 24 24">{icon5.props.children}</svg>
+                          </Link>
+                        ))}
+                      </>
+                    )}
+                  </div>
 
-                {/* ── Profile dropdown (desktop) ── */}
-                <div className="hidden md:block relative" ref={dropdownRef}>
+                  {/* ── Profile dropdown (desktop only) ── */}
+                  <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => setShowDropdown(!showDropdown)}
                     className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
@@ -222,6 +258,7 @@ export function Layout({ children }: LayoutProps) {
                     </div>
                   )}
                 </div>
+                </div>{/* end hidden md:flex */}
 
                 {/* ── Mobile: notification badge + avatar + hamburger ── */}
                 <div className="flex md:hidden items-center gap-2">
@@ -277,7 +314,7 @@ export function Layout({ children }: LayoutProps) {
 
             {/* Nav links */}
             <div className="py-2">
-              {allLinks.map(({ to, label, badge, icon }: any) => (
+              {allLinks.map(({ to, label, badge, icon5 }: any) => (
                 <Link
                   key={to}
                   to={to}
@@ -287,7 +324,9 @@ export function Layout({ children }: LayoutProps) {
                       : "text-gray-700 hover:bg-gray-50 border-l-4 border-transparent"
                   }`}
                 >
-                  <span className={isActive(to) ? "text-blue-600" : "text-gray-400"}>{icon}</span>
+                  <span className={isActive(to) ? "text-blue-600" : "text-gray-400"}>
+                    <svg width="18" height="18" viewBox="0 0 24 24">{icon5?.props?.children}</svg>
+                  </span>
                   {label}
                   {badge != null && badge > 0 && (
                     <span className="ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
