@@ -1,14 +1,20 @@
 import React from "react";
 
-type StepColor = { bg: string; text: string; border: string; glow: string };
+/* ────────────────────────────────────────────────────────────
+   Colour palette per state
+──────────────────────────────────────────────────────────── */
+type StepColor = { bg: string; light: string; border: string };
 
 const STATE_COLORS: Record<string, StepColor> = {
-  DRAFT:     { bg: "#6B7280", text: "white", border: "#4B5563", glow: "#6B728033" },
-  IN_REVIEW: { bg: "#D97706", text: "white", border: "#B45309", glow: "#D9770633" },
-  PUBLISHED: { bg: "#059669", text: "white", border: "#047857", glow: "#05966933" },
-  OBSOLETE:  { bg: "#9CA3AF", text: "white", border: "#6B7280", glow: "#9CA3AF33" },
+  DRAFT:     { bg: "#6B7280", light: "#F3F4F6", border: "#D1D5DB" },
+  IN_REVIEW: { bg: "#D97706", light: "#FFFBEB", border: "#FDE68A" },
+  PUBLISHED: { bg: "#059669", light: "#ECFDF5", border: "#A7F3D0" },
+  OBSOLETE:  { bg: "#9CA3AF", light: "#F9FAFB", border: "#E5E7EB" },
 };
 
+/* ────────────────────────────────────────────────────────────
+   StepCard — wider, badge integrated, clean proportions
+──────────────────────────────────────────────────────────── */
 function StepCard({
   num, icon, label, who, description, color,
 }: {
@@ -16,122 +22,127 @@ function StepCard({
 }) {
   const [hovered, setHovered] = React.useState(false);
   return (
-    <div className="flex flex-col items-center" style={{ minWidth: 144 }}>
-      {/* Step number badge */}
-      <div
-        className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white mb-2 shadow z-10"
-        style={{ backgroundColor: color.border }}
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="relative flex flex-col items-center gap-3 rounded-2xl p-5 border-2 bg-white cursor-default transition-all duration-300 ease-in-out"
+      style={{
+        width: 160,
+        minWidth: 160,
+        borderColor: hovered ? color.bg : "#E5E7EB",
+        transform: hovered ? "translateY(-6px)" : "translateY(0)",
+        boxShadow: hovered
+          ? `0 16px 32px ${color.bg}28, 0 2px 8px rgba(0,0,0,0.07)`
+          : "0 2px 10px rgba(0,0,0,0.07)",
+      }}
+    >
+      {/* Step badge — top-left corner, inside card */}
+      <span
+        className="absolute -top-3.5 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full flex items-center justify-center text-xs font-extrabold text-white shadow-md ring-2 ring-white"
+        style={{ backgroundColor: color.bg }}
       >
         {num}
-      </div>
+      </span>
 
-      {/* Light card — consistent with app theme, hover lifts + reveals color accent */}
+      {/* Icon */}
       <div
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        className="flex flex-col gap-3 w-36 rounded-2xl p-4 border-2 bg-white cursor-default transition-all duration-300 ease-in-out"
+        className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl border-2 transition-all duration-300 mt-1"
         style={{
-          borderColor: hovered ? color.bg : "#E5E7EB",
-          transform: hovered ? "translateY(-6px)" : "translateY(0)",
-          boxShadow: hovered
-            ? `0 16px 32px ${color.bg}30, 0 2px 8px rgba(0,0,0,0.06)`
-            : "0 2px 8px rgba(0,0,0,0.06)",
+          backgroundColor: hovered ? `${color.bg}18` : color.light,
+          borderColor: hovered ? `${color.bg}70` : color.border,
         }}
       >
-        {/* Icon area */}
-        <div className="relative">
-          <div
-            className="w-12 h-12 mx-auto rounded-xl flex items-center justify-center text-2xl border-2 transition-all duration-300"
-            style={{
-              backgroundColor: hovered ? `${color.bg}18` : "#F9FAFB",
-              borderColor: hovered ? `${color.bg}60` : "#E5E7EB",
-            }}
-          >
-            {icon}
-          </div>
-          {/* Status dot: gray at rest → state color on hover */}
-          <div
-            className="absolute top-0 right-4 w-2.5 h-2.5 rounded-full border-2 border-white shadow transition-all duration-300"
-            style={{ backgroundColor: hovered ? color.bg : "#D1D5DB" }}
-          />
-        </div>
-
-        {/* Label + who — always fully readable */}
-        <div className="text-center">
-          <p
-            className="font-bold text-xs uppercase tracking-widest transition-colors duration-300"
-            style={{ color: hovered ? color.bg : "#374151" }}
-          >
-            {label}
-          </p>
-          <p
-            className="text-xs mt-1 font-medium transition-colors duration-300"
-            style={{ color: hovered ? color.bg : "#6B7280", opacity: 0.85 }}
-          >
-            {who}
-          </p>
-        </div>
-
-        {/* Description — always fully readable */}
-        <p className="text-xs text-center leading-tight text-gray-500">
-          {description}
-        </p>
-
-        {/* Bottom accent line — expands on hover */}
-        <div
-          className="h-0.5 rounded-full mx-auto transition-all duration-300"
-          style={{
-            backgroundColor: color.bg,
-            width: hovered ? "100%" : "0%",
-          }}
-        />
+        {icon}
       </div>
+
+      {/* Label + who */}
+      <div className="text-center">
+        <p
+          className="font-extrabold text-xs uppercase tracking-widest transition-colors duration-300"
+          style={{ color: hovered ? color.bg : "#1F2937" }}
+        >
+          {label}
+        </p>
+        <p
+          className="text-xs mt-0.5 font-semibold transition-colors duration-300"
+          style={{ color: hovered ? color.bg : "#6B7280" }}
+        >
+          {who}
+        </p>
+      </div>
+
+      {/* Description */}
+      <p className="text-xs text-center leading-relaxed text-gray-400">{description}</p>
+
+      {/* Bottom accent */}
+      <div
+        className="h-0.5 rounded-full mx-auto transition-all duration-300"
+        style={{ backgroundColor: color.bg, width: hovered ? "100%" : "0%" }}
+      />
     </div>
   );
 }
 
-function ForwardArrow({ label, sublabel, color }: { label: string; sublabel?: string; color: string }) {
-  const id = `grad-${label.replace(/\s/g, "")}`;
+/* ────────────────────────────────────────────────────────────
+   ConnectorArrow — animated flowing arrow between cards
+──────────────────────────────────────────────────────────── */
+function ConnectorArrow({
+  label, sublabel, color,
+}: {
+  label: string; sublabel?: string; color: string;
+}) {
+  const uid = React.useId().replace(/:/g, "");
   return (
-    <div className="flex flex-col items-center justify-center px-1 pt-6 shrink-0" style={{ minWidth: 68 }}>
-      <span className="text-xs font-semibold text-gray-500 mb-0.5 whitespace-nowrap text-center leading-tight">{label}</span>
-      {sublabel && <span className="text-xs text-gray-400 mb-1 whitespace-nowrap text-center">{sublabel}</span>}
-      <svg width="52" height="18" viewBox="0 0 52 18" fill="none">
+    <div
+      className="flex flex-col items-center justify-center shrink-0 gap-1"
+      style={{ width: 88 }}
+    >
+      <span className="text-[11px] font-bold text-gray-500 whitespace-nowrap leading-tight text-center">
+        {label}
+      </span>
+      {sublabel && (
+        <span className="text-[10px] text-gray-400 whitespace-nowrap text-center">
+          {sublabel}
+        </span>
+      )}
+      <svg width="88" height="24" viewBox="0 0 88 24" fill="none">
         <defs>
-          <linearGradient id={id} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor={color} stopOpacity="0.3" />
-            <stop offset="100%" stopColor={color} />
+          <linearGradient id={`lg-${uid}`} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={color} stopOpacity="1" />
           </linearGradient>
         </defs>
-        {/* Animated dashed line — dashes flow left→right */}
+        {/* Track */}
+        <line x1="0" y1="12" x2="72" y2="12" stroke={`${color}30`} strokeWidth="3" />
+        {/* Animated dashes */}
         <line
-          x1="0" y1="9" x2="44" y2="9"
-          stroke={`url(#${id})`} strokeWidth="2.5"
-          strokeDasharray="7 4"
-          style={{ animation: "isoFlowFwd 0.5s linear infinite" }}
+          x1="0" y1="12" x2="72" y2="12"
+          stroke={`url(#lg-${uid})`}
+          strokeWidth="3"
+          strokeDasharray="8 5"
+          style={{ animation: "isoFlowFwd 0.55s linear infinite" }}
         />
-        <polygon points="38,5 52,9 38,13" fill={color} />
+        {/* Arrowhead */}
+        <polygon points="68,6 88,12 68,18" fill={color} />
       </svg>
     </div>
   );
 }
 
-/**
- * BackArc — animated 3-sided SVG border (no top edge).
- * Path is drawn: top-right → bottom-right → bottom-left → top-left
- * so isoFlowFwd makes dashes travel right→left on the bottom segment.
- */
+/* ────────────────────────────────────────────────────────────
+   BackArc — animated 3-sided return path with real arrowhead
+──────────────────────────────────────────────────────────── */
 function BackArc({
-  color, maxWidth, children,
+  color, arrowColor, children, maxWidth,
 }: {
-  color: string; maxWidth?: number | string; children: React.ReactNode;
+  color: string; arrowColor: string; children: React.ReactNode; maxWidth?: string | number;
 }) {
   return (
     <div
-      className="relative flex items-center justify-center py-2 px-4 gap-2"
-      style={{ maxWidth, minHeight: 36 }}
+      className="relative flex items-center gap-2 py-2.5 px-5 rounded-lg"
+      style={{ maxWidth, minHeight: 40 }}
     >
-      {/* SVG overlay stretches to container with non-scaling stroke */}
+      {/* Animated dashed border (3 sides: right + bottom + left) */}
       <svg
         className="absolute inset-0 w-full h-full pointer-events-none"
         preserveAspectRatio="none"
@@ -144,34 +155,41 @@ function BackArc({
           stroke={color}
           strokeWidth="2"
           vectorEffect="non-scaling-stroke"
-          strokeDasharray="10 6"
-          style={{ animation: "isoFlowFwd 0.9s linear infinite" }}
+          strokeDasharray="9 5"
+          style={{ animation: "isoFlowFwd 1s linear infinite" }}
         />
       </svg>
-      {children}
+      {/* Left arrowhead pointing right→ to show return to start */}
+      <svg width="14" height="12" viewBox="0 0 14 12" fill="none" className="shrink-0 relative z-10">
+        <polygon points="8,0 0,6 8,12" fill={arrowColor} />
+      </svg>
+      <div className="relative z-10">{children}</div>
     </div>
   );
 }
 
+/* ────────────────────────────────────────────────────────────
+   DecisionFork — approve / request-changes
+──────────────────────────────────────────────────────────── */
 function DecisionFork() {
   return (
-    <div className="flex justify-center gap-4 mt-3 px-2">
-      <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-300 rounded-lg px-3 py-1.5">
+    <div className="flex justify-center gap-3 mt-4">
+      <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-300 rounded-xl px-3 py-2 shadow-sm">
         <svg className="w-3.5 h-3.5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
         </svg>
         <div>
           <div className="text-xs font-bold text-emerald-700">Aprueba</div>
-          <div className="text-xs text-emerald-600">→ Publicar</div>
+          <div className="text-[10px] text-emerald-600">→ Publicar</div>
         </div>
       </div>
-      <div className="flex items-center gap-1.5 bg-red-50 border border-red-300 rounded-lg px-3 py-1.5">
+      <div className="flex items-center gap-1.5 bg-red-50 border border-red-300 rounded-xl px-3 py-2 shadow-sm">
         <svg className="w-3.5 h-3.5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
         </svg>
         <div>
           <div className="text-xs font-bold text-red-600">Solicita cambios</div>
-          <div className="text-xs text-red-500">← vuelve a Borrador</div>
+          <div className="text-[10px] text-red-500">← vuelve a Borrador</div>
         </div>
       </div>
     </div>
@@ -236,15 +254,15 @@ export function ISOFlowPage() {
         </p>
 
         <div className="overflow-x-auto pb-4">
-          {/* Horizontal flow */}
-          <div className="flex items-start justify-center gap-0 min-w-max mx-auto">
+          {/* Horizontal flow — items-center so arrows align with card midpoints */}
+          <div className="flex items-center justify-center gap-0 min-w-max mx-auto pt-6">
             <StepCard num={1} icon="✏️" label="Borrador" who="Propietario"
               description="Se redacta el documento y se carga el archivo."
               color={STATE_COLORS.DRAFT}
             />
-            <ForwardArrow label="Enviar a" sublabel="revisión" color={STATE_COLORS.DRAFT.bg} />
+            <ConnectorArrow label="Enviar a" sublabel="revisión" color={STATE_COLORS.DRAFT.bg} />
 
-            {/* IN_REVIEW with decision fork below */}
+            {/* IN_REVIEW with decision fork below — wrapped so fork doesn't affect arrow alignment */}
             <div className="flex flex-col items-center">
               <StepCard num={2} icon="🔍" label="En Revisión" who="Revisor / Aprobador"
                 description="Uno o más revisores evalúan el contenido y la conformidad."
@@ -253,13 +271,13 @@ export function ISOFlowPage() {
               <DecisionFork />
             </div>
 
-            <ForwardArrow label="Publicar" color={STATE_COLORS.IN_REVIEW.bg} />
+            <ConnectorArrow label="Publicar" color={STATE_COLORS.IN_REVIEW.bg} />
 
             <StepCard num={3} icon="✅" label="Publicado" who="Todos (lectura)"
               description="Documento vigente. Se notifica a los lectores del área."
               color={STATE_COLORS.PUBLISHED}
             />
-            <ForwardArrow label="Nueva" sublabel="versión" color={STATE_COLORS.PUBLISHED.bg} />
+            <ConnectorArrow label="Nueva" sublabel="versión" color={STATE_COLORS.PUBLISHED.bg} />
 
             <StepCard num={4} icon="📦" label="Obsoleto" who="Sistema"
               description="Versión anterior conservada en historial. Reemplazada por la nueva."
@@ -267,22 +285,28 @@ export function ISOFlowPage() {
             />
           </div>
 
-          {/* Back-arc labels — animated dashes flow right→left (return direction) */}
-          <div className="min-w-max mx-auto mt-8 space-y-2">
-            <BackArc color="#FCA5A5" maxWidth="calc(144px + 68px + 144px + 48px)">
-              <svg width="16" height="12" viewBox="0 0 16 12" fill="none" className="shrink-0">
-                <polygon points="10,1 0,6 10,11" fill="#F87171" />
-              </svg>
+          {/* Return arcs */}
+          <div className="min-w-max mx-auto mt-10 space-y-3">
+            {/* Short arc: EN REVISIÓN → BORRADOR */}
+            <BackArc
+              color="#FCA5A5"
+              arrowColor="#F87171"
+              maxWidth={`calc(160px + 88px + 160px + 24px)`}
+            >
               <span className="text-xs text-red-400 italic font-medium">
-                Si el revisor <strong className="not-italic font-bold">solicita cambios</strong>, el documento regresa a Borrador para correcciones
+                Si el revisor <strong className="not-italic font-bold text-red-500">solicita cambios</strong>,
+                el documento regresa a Borrador para correcciones
               </span>
             </BackArc>
-            <BackArc color="#6EE7B7">
-              <svg width="16" height="12" viewBox="0 0 16 12" fill="none" className="shrink-0">
-                <polygon points="10,1 0,6 10,11" fill="#059669" />
-              </svg>
+
+            {/* Long arc: PUBLICADO → BORRADOR (ciclo completo) */}
+            <BackArc
+              color="#6EE7B7"
+              arrowColor="#059669"
+            >
               <span className="text-xs text-emerald-600 italic font-medium">
-                Al crear una <strong className="not-italic font-bold">nueva versión</strong>, el doc publicado pasa a Obsoleto y se inicia un nuevo Borrador → ciclo completo
+                Al crear una <strong className="not-italic font-bold">nueva versión</strong>,
+                el doc publicado pasa a Obsoleto y se inicia un nuevo Borrador → ciclo completo
               </span>
             </BackArc>
           </div>
