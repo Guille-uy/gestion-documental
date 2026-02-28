@@ -49,3 +49,5 @@ prisma/.env
 # Temporary files
 *.tmp
 tmp/
+
+deploy.zip

@@ -1,0 +1,153 @@
+export declare function createDocument(data: {
+    title: string;
+    description?: string;
+    type: string;
+    area: string;
+}, userId: string): Promise<{
+    id: any;
+    code: any;
+    title: any;
+    description: any;
+    type: any;
+    area: any;
+    status: any;
+    currentVersionLabel: any;
+    googleDriveFileId: any;
+    createdBy: any;
+    createdAt: any;
+    updatedBy: any;
+    updatedAt: any;
+    publishedAt: any;
+    nextReviewDate: any;
+}>;
+export declare function uploadDocumentFile(documentId: string, fileName: string, fileContent: Buffer, userId: string): Promise<{
+    id: any;
+    code: any;
+    title: any;
+    description: any;
+    type: any;
+    area: any;
+    status: any;
+    currentVersionLabel: any;
+    googleDriveFileId: any;
+    createdBy: any;
+    createdAt: any;
+    updatedBy: any;
+    updatedAt: any;
+    publishedAt: any;
+    nextReviewDate: any;
+}>;
+export declare function getDocument(documentId: string): Promise<{
+    versions: any;
+    comments: any;
+    reviewTasks: any;
+    id: any;
+    code: any;
+    title: any;
+    description: any;
+    type: any;
+    area: any;
+    status: any;
+    currentVersionLabel: any;
+    googleDriveFileId: any;
+    createdBy: any;
+    createdAt: any;
+    updatedBy: any;
+    updatedAt: any;
+    publishedAt: any;
+    nextReviewDate: any;
+}>;
+export declare function updateDocument(documentId: string, data: {
+    title?: string;
+    description?: string;
+    area?: string;
+    nextReviewDate?: Date | null;
+}, userId: string): Promise<{
+    id: any;
+    code: any;
+    title: any;
+    description: any;
+    type: any;
+    area: any;
+    status: any;
+    currentVersionLabel: any;
+    googleDriveFileId: any;
+    createdBy: any;
+    createdAt: any;
+    updatedBy: any;
+    updatedAt: any;
+    publishedAt: any;
+    nextReviewDate: any;
+}>;
+export declare function submitForReview(documentId: string, reviewerIds: string[], comments: string | undefined, userId: string): Promise<{
+    id: any;
+    code: any;
+    title: any;
+    description: any;
+    type: any;
+    area: any;
+    status: any;
+    currentVersionLabel: any;
+    googleDriveFileId: any;
+    createdBy: any;
+    createdAt: any;
+    updatedBy: any;
+    updatedAt: any;
+    publishedAt: any;
+    nextReviewDate: any;
+}>;
+export declare function approveReview(documentId: string, reviewTaskId: string, action: "APPROVE" | "REQUEST_CHANGES", comments: string | undefined, userId: string): Promise<{
+    success: boolean;
+}>;
+export declare function publishDocument(documentId: string, comments: string | undefined, userId: string): Promise<{
+    id: any;
+    code: any;
+    title: any;
+    description: any;
+    type: any;
+    area: any;
+    status: any;
+    currentVersionLabel: any;
+    googleDriveFileId: any;
+    createdBy: any;
+    createdAt: any;
+    updatedBy: any;
+    updatedAt: any;
+    publishedAt: any;
+    nextReviewDate: any;
+}>;
+export declare function listDocuments(page?: number, limit?: number, filters?: {
+    status?: string;
+    area?: string;
+    type?: string;
+    search?: string;
+}): Promise<{
+    items: any;
+    total: any;
+    page: number;
+    limit: number;
+    totalPages: number;
+}>;
+export declare function downloadDocument(documentId: string, userId: string): Promise<{
+    content: Buffer<any>;
+    fileName: any;
+    mimeType: any;
+}>;
+export declare function createNewVersion(documentId: string, changes: string | undefined, userId: string): Promise<{
+    id: any;
+    code: any;
+    title: any;
+    description: any;
+    type: any;
+    area: any;
+    status: any;
+    currentVersionLabel: any;
+    googleDriveFileId: any;
+    createdBy: any;
+    createdAt: any;
+    updatedBy: any;
+    updatedAt: any;
+    publishedAt: any;
+    nextReviewDate: any;
+}>;
+//# sourceMappingURL=document.d.ts.map

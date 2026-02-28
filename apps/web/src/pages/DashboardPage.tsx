@@ -173,22 +173,22 @@ export function DashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </IconBox>
-              <h3 className="text-sm font-semibold text-white">Salud del sistema</h3>
+              <h3 className="text-sm font-semibold text-gray-900">Salud del sistema</h3>
             </div>
             <LiveBadge dot={healthDot} label={healthLabel} />
           </div>
           <div className="flex items-end gap-3 mb-3">
-            <span className="text-4xl font-bold text-white">{health}</span>
-            <span className="text-slate-400 text-sm mb-1">/ 100</span>
+            <span className="text-4xl font-bold text-gray-900">{health}</span>
+            <span className="text-gray-400 text-sm mb-1">/ 100</span>
           </div>
           {/* Progress bar */}
-          <div className="w-full bg-slate-800 rounded-full h-2 mb-3">
+          <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
             <div
               className={`h-2 rounded-full bg-gradient-to-r ${healthColor} transition-all duration-700`}
               style={{ width: `${health}%` }}
             />
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-gray-500">
             {data.stale14 > 0
               ? `${data.stale14} revisión${data.stale14 > 1 ? "es" : ""} crítica${data.stale14 > 1 ? "s" : ""} (>14 días)`
               : data.stale7 > 0
@@ -206,30 +206,30 @@ export function DashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </IconBox>
-              <h3 className="text-sm font-semibold text-white">En revisión</h3>
+              <h3 className="text-sm font-semibold text-gray-900">En revisión</h3>
             </div>
             {data.stale7 > 0 && (
-              <span className="flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-1 text-xs font-medium text-amber-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+              <span className="flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-1 text-xs font-medium text-amber-600">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
                 {data.stale7} demorado{data.stale7 > 1 ? "s" : ""}
               </span>
             )}
           </div>
-          <p className="text-4xl font-bold text-white mb-1">{data.inReview}</p>
-          <p className="text-xs text-slate-400 mb-3">documento{data.inReview !== 1 ? "s" : ""} esperando revisión</p>
+          <p className="text-4xl font-bold text-gray-900 mb-1">{data.inReview}</p>
+          <p className="text-xs text-gray-500 mb-3">documento{data.inReview !== 1 ? "s" : ""} esperando revisión</p>
           {data.staleDocsDetail.length > 0 ? (
             <div className="space-y-1.5">
               {data.staleDocsDetail.map((d) => (
-                <Link key={d.id} to={`/documents/${d.id}`} className="flex items-center justify-between rounded-md bg-slate-900/60 px-2.5 py-1.5 hover:bg-slate-800/80 transition-colors">
-                  <span className="text-xs text-slate-300 truncate max-w-[140px]">{d.code}</span>
-                  <span className={`text-xs font-medium shrink-0 ml-2 ${d.days >= 14 ? "text-red-400" : d.days >= 7 ? "text-amber-400" : "text-slate-400"}`}>
+                <Link key={d.id} to={`/documents/${d.id}`} className="flex items-center justify-between rounded-md bg-gray-50 border border-gray-100 px-2.5 py-1.5 hover:bg-gray-100 transition-colors">
+                  <span className="text-xs text-gray-700 truncate max-w-[140px]">{d.code}</span>
+                  <span className={`text-xs font-medium shrink-0 ml-2 ${d.days >= 14 ? "text-red-500" : d.days >= 7 ? "text-amber-600" : "text-gray-400"}`}>
                     {d.days}d
                   </span>
                 </Link>
               ))}
             </div>
           ) : (
-            <p className="text-xs text-emerald-400 font-medium">✓ Todo al día</p>
+            <p className="text-xs text-emerald-600 font-medium">✓ Todo al día</p>
           )}
         </GradientCard>
 
@@ -242,26 +242,26 @@ export function DashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
               </IconBox>
-              <h3 className="text-sm font-semibold text-white">Notificaciones</h3>
+              <h3 className="text-sm font-semibold text-gray-900">Notificaciones</h3>
             </div>
             <Link
               to="/notifications"
-              className="text-xs text-blue-300 hover:text-white transition-colors"
+              className="text-xs text-blue-600 hover:text-blue-800 transition-colors font-medium"
             >
               Ver todas →
             </Link>
           </div>
-          <p className="text-4xl font-bold text-white mb-1">{data.unreadNotifications}</p>
-          <p className="text-xs text-slate-400 mb-4">sin leer</p>
+          <p className="text-4xl font-bold text-gray-900 mb-1">{data.unreadNotifications}</p>
+          <p className="text-xs text-gray-500 mb-4">sin leer</p>
           <div className="grid grid-cols-3 gap-2">
             {[
-              { label: "Borrador", val: data.draft, color: "text-slate-300" },
-              { label: "Revisión", val: data.inReview, color: "text-amber-400" },
-              { label: "Publicado", val: data.published, color: "text-emerald-400" },
+              { label: "Borrador", val: data.draft, color: "text-gray-700" },
+              { label: "Revisión", val: data.inReview, color: "text-amber-600" },
+              { label: "Publicado", val: data.published, color: "text-emerald-600" },
             ].map((s) => (
-              <div key={s.label} className="rounded-md bg-slate-900/60 p-2 text-center">
+              <div key={s.label} className="rounded-md bg-gray-50 border border-gray-100 p-2 text-center">
                 <p className={`text-base font-bold ${s.color}`}>{s.val}</p>
-                <p className="text-[10px] text-slate-500 leading-tight">{s.label}</p>
+                <p className="text-[10px] text-gray-400 leading-tight">{s.label}</p>
               </div>
             ))}
           </div>
@@ -276,27 +276,27 @@ export function DashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                 </svg>
               </IconBox>
-              <h3 className="text-sm font-semibold text-white">Publicados</h3>
+              <h3 className="text-sm font-semibold text-gray-900">Publicados</h3>
             </div>
-            <span className="text-xs text-slate-400 capitalize">
+            <span className="text-xs text-gray-500 capitalize font-medium">
               {format(new Date(), "MMM", { locale: es })}
             </span>
           </div>
-          <p className="text-4xl font-bold text-white mb-1">{data.publishedThisMonth}</p>
-          <p className="text-xs text-slate-400 mb-3">este mes</p>
-          <div className="rounded-md bg-slate-900/60 p-2.5">
-            <div className="flex justify-between text-xs text-slate-400 mb-1.5">
+          <p className="text-4xl font-bold text-gray-900 mb-1">{data.publishedThisMonth}</p>
+          <p className="text-xs text-gray-500 mb-3">este mes</p>
+          <div className="rounded-md bg-gray-50 border border-gray-100 p-2.5">
+            <div className="flex justify-between text-xs text-gray-500 mb-1.5">
               <span>Total en producción</span>
-              <span className="text-white font-semibold">{data.published}</span>
+              <span className="text-gray-900 font-semibold">{data.published}</span>
             </div>
             {/* mini bar */}
-            <div className="w-full bg-slate-800 rounded-full h-1.5">
+            <div className="w-full bg-gray-200 rounded-full h-1.5">
               <div
                 className="h-1.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"
                 style={{ width: `${data.total > 0 ? Math.round((data.published / data.total) * 100) : 0}%` }}
               />
             </div>
-            <p className="text-[10px] text-slate-500 mt-1">
+            <p className="text-[10px] text-gray-400 mt-1">
               {data.total > 0 ? Math.round((data.published / data.total) * 100) : 0}% del total publicado
             </p>
           </div>
@@ -474,10 +474,24 @@ export function DashboardPage() {
 
 function GradientCard({ children, gradient }: { children: React.ReactNode; gradient: string }) {
   return (
-    <div className={`group relative flex flex-col rounded-xl bg-slate-950 p-4 shadow-xl transition-all duration-300 hover:scale-[1.02]`}>
-      <div className={`absolute inset-0 rounded-xl bg-gradient-to-r ${gradient} opacity-20 blur-sm transition-opacity duration-300 group-hover:opacity-35`} />
-      <div className="absolute inset-px rounded-[11px] bg-slate-950" />
-      <div className="relative flex flex-col flex-1">{children}</div>
+    <div
+      className="group relative flex flex-col rounded-xl bg-white p-5 transition-all duration-300 hover:-translate-y-1"
+      style={{
+        boxShadow:
+          "0 4px 24px rgba(0,0,0,0.07), 0 1px 6px rgba(0,0,0,0.04)",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLDivElement).style.boxShadow =
+          "0 12px 40px rgba(0,0,0,0.11), 0 2px 10px rgba(0,0,0,0.06)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLDivElement).style.boxShadow =
+          "0 4px 24px rgba(0,0,0,0.07), 0 1px 6px rgba(0,0,0,0.04)";
+      }}
+    >
+      {/* Colored top accent bar */}
+      <div className={`absolute top-0 left-0 right-0 h-[3px] rounded-t-xl bg-gradient-to-r ${gradient}`} />
+      <div className="relative flex flex-col flex-1 pt-1">{children}</div>
     </div>
   );
 }
@@ -492,7 +506,7 @@ function IconBox({ children, gradient }: { children: React.ReactNode; gradient: 
 
 function LiveBadge({ dot, label }: { dot: string; label: string }) {
   return (
-    <span className="flex items-center gap-1 rounded-full bg-white/10 px-2 py-1 text-xs font-medium text-white">
+    <span className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 border border-gray-200">
       <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
       {label}
     </span>
