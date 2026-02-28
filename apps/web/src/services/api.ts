@@ -60,6 +60,14 @@ class ApiService {
     return this.client.get("/auth/me");
   }
 
+  getMyProfile() {
+    return this.client.get("/auth/me");
+  }
+
+  changePassword(currentPassword: string, newPassword: string) {
+    return this.client.patch("/auth/me/password", { currentPassword, newPassword });
+  }
+
   // Users API
   createUser(data: any) {
     return this.client.post("/auth/users", data);

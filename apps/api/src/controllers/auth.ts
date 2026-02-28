@@ -9,6 +9,7 @@ import {
   reactivateUser,
   getAllUsers,
   getUserById,
+  changeMyPassword,
 } from "../services/auth.js";
 import { LoginRequestSchema, CreateUserSchema, UpdateUserSchema } from "@dms/shared";
 import { AuthenticatedRequest } from "../middleware/auth.js";
@@ -148,5 +149,22 @@ export const getUserHandler = asyncHandler(
       success: true,
       data: user,
     });
+  }
+);
+
+export const changePasswordHandler = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: "Not authenticated" });
+    }
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword || newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: "Contraseña inválida (mínimo 6 caracteres)",
+      });
+    }
+    await changeMyPassword(req.user.userId, currentPassword, newPassword);
+    res.json({ success: true, data: { message: "Contraseña actualizada correctamente" } });
   }
 );

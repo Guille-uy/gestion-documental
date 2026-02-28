@@ -9,6 +9,7 @@ import {
   reactivateUserHandler,
   listUsersHandler,
   getUserHandler,
+  changePasswordHandler,
 } from "../controllers/auth.js";
 import { authMiddleware, authorizationMiddleware } from "../middleware/auth.js";
 
@@ -17,6 +18,7 @@ const router = Router();
 router.post("/login", loginHandler);
 router.post("/refresh", refreshHandler);
 router.get("/me", authMiddleware, meHandler);
+router.patch("/me/password", authMiddleware, changePasswordHandler);
 
 router.post("/users", authMiddleware, authorizationMiddleware(["ADMIN"]), createUserHandler);
 router.get("/users", authMiddleware, authorizationMiddleware(["ADMIN"]), listUsersHandler);
