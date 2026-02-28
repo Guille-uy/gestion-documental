@@ -8,68 +8,53 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
-/* ── Pill nav CSS (desktop) ───────────────────────────────── */
-const PILL_STYLE = `
-.nav-pill {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 60%, #3b82f6 100%);
-  box-shadow: 0 4px 14px rgba(37,99,235,0.45);
-}
-.nav-icon-btn {
+/* ── Nav link hover effect ── */
+const NAV_STYLE = `
+.nav-link {
   position: relative;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  color: rgba(255,255,255,0.85);
-  transition: all 0.22s ease;
+  gap: 5px;
+  padding: 6px 11px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #4B5563;
   text-decoration: none;
-}
-.nav-icon-btn:hover {
-  color: #fff;
-  transform: translateY(-3px);
-  background: rgba(255,255,255,0.15);
-}
-.nav-icon-btn.active {
-  color: #fff;
-  background: rgba(255,255,255,0.22);
-  box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.5);
-}
-.nav-sep { width:1px; height:22px; background:rgba(255,255,255,0.25); margin:0 2px; }
-/* tooltip */
-.nav-icon-btn .tip {
-  position: absolute;
-  top: calc(-100% - 10px);
-  left: 50%;
-  transform: translateX(-50%) scale(0.7);
-  transform-origin: bottom center;
-  background: #0f172a;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
+  transition: color 0.18s ease, background 0.18s ease;
   white-space: nowrap;
-  padding: 4px 9px;
-  border-radius: 6px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.18s ease, transform 0.18s ease;
 }
-.nav-icon-btn .tip::after {
+.nav-link::after {
   content: "";
   position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 5px solid transparent;
-  border-top-color: #0f172a;
+  bottom: 3px;
+  left: 11px;
+  right: 11px;
+  height: 2px;
+  border-radius: 2px;
+  background: #2563eb;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.22s ease;
 }
-.nav-icon-btn:hover .tip { opacity:1; transform:translateX(-50%) scale(1); }
+.nav-link:hover {
+  color: #1d4ed8;
+  background: #EFF6FF;
+}
+.nav-link:hover::after { transform: scaleX(1); }
+.nav-link.active {
+  color: #1d4ed8;
+  background: #DBEAFE;
+  font-weight: 600;
+}
+.nav-link.active::after { transform: scaleX(1); }
+.nav-sep {
+  width: 1px;
+  height: 20px;
+  background: #E5E7EB;
+  margin: 0 2px;
+  flex-shrink: 0;
+}
 `;
 
 const ROLE_LABELS: Record<string, string> = {
@@ -159,7 +144,7 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <style>{PILL_STYLE}</style>
+      <style>{NAV_STYLE}</style>
 
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -176,89 +161,84 @@ export function Layout({ children }: LayoutProps) {
 
             {user && (
               <>
-                {/* ── Desktop: icon pill ── */}
-                <div className="hidden md:flex items-center gap-4">
-                  <div className="nav-pill">
-                    {navLinks.map(({ to, label, badge, icon5 }) => (
-                      <Link key={to} to={to} className={`nav-icon-btn${isActive(to) ? " active" : ""}`}>
-                        <span className="tip">{label}</span>
-                        <svg width="20" height="20" viewBox="0 0 24 24">{icon5.props.children}</svg>
-                        {badge != null && badge > 0 && (
-                          <span style={{
-                            position:"absolute", top:0, right:0,
-                            background:"#ef4444", color:"#fff",
-                            fontSize:9, fontWeight:700, borderRadius:999,
-                            minWidth:15, height:15, display:"flex",
-                            alignItems:"center", justifyContent:"center",
-                            padding:"0 3px",
-                            border:"1.5px solid #2563eb",
-                          }}>{badge}</span>
-                        )}
-                      </Link>
-                    ))}
-
-                    {isAdmin && (
-                      <>
-                        <span className="nav-sep" />
-                        {adminLinks.map(({ to, label, icon5 }) => (
-                          <Link key={to} to={to} className={`nav-icon-btn${isActive(to) ? " active" : ""}`}>
-                            <span className="tip">{label}</span>
-                            <svg width="20" height="20" viewBox="0 0 24 24">{icon5.props.children}</svg>
-                          </Link>
-                        ))}
-                      </>
-                    )}
-                  </div>
-
-                  {/* ── Profile dropdown (desktop only) ── */}
-                  <div className="relative" ref={dropdownRef}>
-                  <button
-                    onClick={() => setShowDropdown(!showDropdown)}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
-                  >
-                    <span className="w-8 h-8 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
-                      {initials}
-                    </span>
-                    <span className="hidden lg:block max-w-[120px] truncate">
-                      {user.firstName} {user.lastName}
-                    </span>
-                    <svg
-                      className={`w-4 h-4 text-gray-400 transition-transform ${showDropdown ? "rotate-180" : ""}`}
-                      fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-
-                  {showDropdown && (
-                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden">
-                      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 px-4 py-4 flex items-center gap-3">
-                        <span className="w-12 h-12 rounded-full bg-blue-600 text-white text-lg font-bold flex items-center justify-center shrink-0">
-                          {initials}
+                {/* ── Desktop: text + icon links + profile, all in one flex row ── */}
+                <div className="hidden md:flex items-center gap-1">
+                  {navLinks.map(({ to, label, badge, icon5 }) => (
+                    <Link key={to} to={to} className={`nav-link${isActive(to) ? " active" : ""}`}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>{icon5.props.children}</svg>
+                      {label}
+                      {badge != null && badge > 0 && (
+                        <span className="ml-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+                          {badge}
                         </span>
-                        <div className="min-w-0">
-                          <p className="font-semibold text-gray-900 truncate">{user.firstName} {user.lastName}</p>
-                          <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                          <span className="inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                            {ROLE_LABELS[user.role] ?? user.role}
+                      )}
+                    </Link>
+                  ))}
+
+                  {isAdmin && (
+                    <>
+                      <span className="nav-sep" />
+                      {adminLinks.map(({ to, label, icon5 }) => (
+                        <Link key={to} to={to} className={`nav-link${isActive(to) ? " active" : ""}`}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>{icon5.props.children}</svg>
+                          {label}
+                        </Link>
+                      ))}
+                    </>
+                  )}
+
+                  {/* separator before profile */}
+                  <span className="nav-sep ml-1" />
+
+                  {/* ── Profile dropdown ── */}
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      onClick={() => setShowDropdown(!showDropdown)}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                      <span className="w-8 h-8 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                        {initials}
+                      </span>
+                      <span className="hidden lg:block max-w-[120px] truncate">
+                        {user.firstName} {user.lastName}
+                      </span>
+                      <svg
+                        className={`w-4 h-4 text-gray-400 transition-transform ${showDropdown ? "rotate-180" : ""}`}
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {showDropdown && (
+                      <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden">
+                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 px-4 py-4 flex items-center gap-3">
+                          <span className="w-12 h-12 rounded-full bg-blue-600 text-white text-lg font-bold flex items-center justify-center shrink-0">
+                            {initials}
                           </span>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-gray-900 truncate">{user.firstName} {user.lastName}</p>
+                            <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                            <span className="inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                              {ROLE_LABELS[user.role] ?? user.role}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="p-2">
+                          <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            Cerrar sesión
+                          </button>
                         </div>
                       </div>
-                      <div className="p-2">
-                        <button
-                          onClick={handleLogout}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                          </svg>
-                          Cerrar sesión
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                </div>{/* end hidden md:flex */}
+                    )}
+                  </div>
+                </div>{/* end desktop nav */}
 
                 {/* ── Mobile: notification badge + avatar + hamburger ── */}
                 <div className="flex md:hidden items-center gap-2">
