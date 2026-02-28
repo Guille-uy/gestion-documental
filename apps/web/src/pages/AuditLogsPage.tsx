@@ -109,7 +109,7 @@ export function AuditLogsPagina() {
   const totalPaginas = Math.ceil(total / limit);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

@@ -251,7 +251,7 @@ export function DocumentDetailPage() {
   const canNuevaVersion = (user?.role === "DOCUMENT_OWNER" || user?.role === "ADMIN" || user?.role === "QUALITY_MANAGER") && doc.status === "PUBLISHED";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{doc.title}</h1>

@@ -170,7 +170,7 @@ export function Layout({ children }: LayoutProps) {
       <style>{NAV_STYLE}</style>
 
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <nav className="max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-10">
           <div className="flex justify-between items-center h-16">
 
             {/* Logo */}
@@ -394,7 +394,7 @@ export function Layout({ children }: LayoutProps) {
         )}
       </header>
 
-      <main className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">{children}</main>
+      <main className="w-full max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-10 py-8">{children}</main>
     </div>
   );
 }

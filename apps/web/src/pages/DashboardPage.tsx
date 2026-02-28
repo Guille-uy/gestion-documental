@@ -150,7 +150,7 @@ export function DashboardPage() {
   const maxArea = Math.max(...data.byArea.map((a) => a.count), 1);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
@@ -171,7 +171,7 @@ export function DashboardPage() {
       </div>
 
       {/* ── KPI Cards (dark gradient style) ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
 
         {/* Card 1 – Salud del sistema */}
         <GradientCard gradient={healthColor}>
@@ -314,7 +314,7 @@ export function DashboardPage() {
 
       {/* ── #11 Revisiones próximas (expiry alerts) ── */}
       {data.expiringDocs.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-amber-100 p-5">
+        <div className="bg-white rounded-xl shadow-sm border border-amber-100 p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-50 border border-amber-200 text-base">📅</span>
@@ -351,7 +351,7 @@ export function DashboardPage() {
       )}
 
       {/* ── Middle row ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Distribución por estado – 2/3 width */}
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -425,7 +425,7 @@ export function DashboardPage() {
           {data.byArea.length === 0 ? (
             <p className="text-sm text-gray-400">Sin datos de área</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {data.byArea.map((a) => (
                 <div key={a.name}>
                   <div className="flex items-center justify-between mb-1">
@@ -446,11 +446,11 @@ export function DashboardPage() {
       </div>
 
       {/* ── Bottom row ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Actividad reciente – 2/3 */}
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
             <h2 className="text-base font-bold text-gray-900">Actividad reciente</h2>
             <Link to="/audit" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
               Ver auditoría →
@@ -461,7 +461,7 @@ export function DashboardPage() {
           ) : (
             <div className="divide-y divide-gray-50">
               {data.auditLogs.map((log: any, i: number) => (
-                <div key={log.id ?? i} className="flex items-start gap-3 px-6 py-3 hover:bg-gray-50 transition-colors">
+                <div key={log.id ?? i} className="flex items-start gap-3 px-6 py-4 hover:bg-gray-50 transition-colors">
                   <div className="mt-0.5 flex-shrink-0 h-7 w-7 rounded-full bg-indigo-50 flex items-center justify-center">
                     <span className="text-xs">{actionIcon(log.action)}</span>
                   </div>
@@ -490,7 +490,7 @@ export function DashboardPage() {
         {/* Acciones rápidas – 1/3 */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-base font-bold text-gray-900 mb-4">Acciones rápidas</h2>
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             {[
               { to: "/documents/create", label: "Crear documento", sub: "Nuevo borrador", icon: "➕", border: "border-blue-200 hover:border-blue-400" },
               { to: "/documents?status=IN_REVIEW", label: "Revisar documentos", sub: `${data.inReview} pendiente${data.inReview !== 1 ? "s" : ""}`, icon: "🔍", border: "border-amber-200 hover:border-amber-400" },
@@ -500,7 +500,7 @@ export function DashboardPage() {
               <Link
                 key={a.to}
                 to={a.to}
-                className={`flex items-center gap-3 p-3 rounded-lg border-2 ${a.border} transition-colors`}
+                className={`flex items-center gap-3 p-4 rounded-lg border-2 ${a.border} transition-colors`}
               >
                 <span className="text-xl shrink-0">{a.icon}</span>
                 <div className="min-w-0">
@@ -522,7 +522,7 @@ export function DashboardPage() {
 function GradientCard({ children, gradient }: { children: React.ReactNode; gradient: string }) {
   return (
     <div
-      className="group relative flex flex-col rounded-xl bg-white p-5 transition-all duration-300 hover:-translate-y-1"
+      className="group relative flex flex-col rounded-xl bg-white p-6 transition-all duration-300 hover:-translate-y-1"
       style={{
         boxShadow:
           "0 4px 24px rgba(0,0,0,0.07), 0 1px 6px rgba(0,0,0,0.04)",
