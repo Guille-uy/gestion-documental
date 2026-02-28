@@ -25,20 +25,17 @@ function StepCard({
         {num}
       </div>
 
-      {/* Dark card — reference style adapted per color */}
+      {/* Light card — consistent with app theme, hover lifts + reveals color accent */}
       <div
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        className="flex flex-col gap-3 w-36 rounded-2xl p-4 border-2 transition-all duration-300 ease-in-out cursor-default"
+        className="flex flex-col gap-3 w-36 rounded-2xl p-4 border-2 bg-white cursor-default transition-all duration-300 ease-in-out"
         style={{
-          background: hovered
-            ? `linear-gradient(to bottom, ${color.bg}28, #0f172a)`
-            : "linear-gradient(to bottom, #1f2937, #111827)",
-          borderColor: hovered ? color.bg : "transparent",
-          transform: hovered ? "translateY(-0.5rem)" : "translateY(0)",
+          borderColor: hovered ? color.bg : "#E5E7EB",
+          transform: hovered ? "translateY(-6px)" : "translateY(0)",
           boxShadow: hovered
-            ? `0 12px 30px ${color.bg}35, 0 2px 8px rgba(0,0,0,0.6)`
-            : "0 4px 16px rgba(0,0,0,0.5)",
+            ? `0 16px 32px ${color.bg}30, 0 2px 8px rgba(0,0,0,0.06)`
+            : "0 2px 8px rgba(0,0,0,0.06)",
         }}
       >
         {/* Icon area */}
@@ -46,40 +43,37 @@ function StepCard({
           <div
             className="w-12 h-12 mx-auto rounded-xl flex items-center justify-center text-2xl border-2 transition-all duration-300"
             style={{
-              backgroundColor: hovered ? `${color.bg}30` : `${color.bg}15`,
-              borderColor: hovered ? `${color.bg}90` : `${color.bg}40`,
+              backgroundColor: hovered ? `${color.bg}18` : "#F9FAFB",
+              borderColor: hovered ? `${color.bg}60` : "#E5E7EB",
             }}
           >
             {icon}
           </div>
-          {/* Status dot */}
+          {/* Status dot: gray at rest → state color on hover */}
           <div
-            className="absolute top-0 right-4 w-2.5 h-2.5 rounded-full transition-all duration-300"
-            style={{ backgroundColor: hovered ? color.bg : "#374151" }}
+            className="absolute top-0 right-4 w-2.5 h-2.5 rounded-full border-2 border-white shadow transition-all duration-300"
+            style={{ backgroundColor: hovered ? color.bg : "#D1D5DB" }}
           />
         </div>
 
-        {/* Label + who */}
+        {/* Label + who — always fully readable */}
         <div className="text-center">
           <p
             className="font-bold text-xs uppercase tracking-widest transition-colors duration-300"
-            style={{ color: hovered ? color.bg : "#9CA3AF" }}
+            style={{ color: hovered ? color.bg : "#374151" }}
           >
             {label}
           </p>
           <p
-            className="text-xs mt-1 transition-all duration-300"
-            style={{ color: color.bg, opacity: hovered ? 1 : 0.55 }}
+            className="text-xs mt-1 font-medium transition-colors duration-300"
+            style={{ color: hovered ? color.bg : "#6B7280", opacity: 0.85 }}
           >
             {who}
           </p>
         </div>
 
-        {/* Description */}
-        <p
-          className="text-xs text-center leading-tight transition-opacity duration-300"
-          style={{ color: "#9CA3AF", opacity: hovered ? 0.9 : 0.55 }}
-        >
+        {/* Description — always fully readable */}
+        <p className="text-xs text-center leading-tight text-gray-500">
           {description}
         </p>
 
