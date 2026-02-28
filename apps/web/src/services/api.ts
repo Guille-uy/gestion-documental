@@ -218,6 +218,16 @@ class ApiService {
   getDocumentReadConfirmations(documentId: string) {
     return this.client.get(`/documents/${documentId}/confirmations`);
   }
+
+  // My pending review tasks
+  getMyTasks() {
+    return this.client.get("/documents/my-tasks");
+  }
+
+  // Document comments
+  addDocumentComment(documentId: string, content: string) {
+    return this.client.post(`/documents/${documentId}/comments`, { content });
+  }
 }
 
 export const apiService = new ApiService();

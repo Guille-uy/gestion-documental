@@ -118,15 +118,16 @@ export function DocumentsListPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [filters, setFilters] = useState({ search: "", status: "", area: "", type: "" });
+  const [sort, setSort] = useState<{ sortBy: string; sortOrder: "asc" | "desc" }>({ sortBy: "createdAt", sortOrder: "desc" });
   const [viewMode, setViewMode] = useState<"table" | "cards">("table"); // #9 toggle
   const limit = 20;
 
-  useEffect(() => { fetchDocuments(); }, [page, filters]);
+  useEffect(() => { fetchDocuments(); }, [page, filters, sort]);
 
   const fetchDocuments = async () => {
     try {
       setIsLoading(true);
-      const response = await apiService.listDocuments({ page, limit, ...filters });
+      const response = await apiService.listDocuments({ page, limit, ...filters, sortBy: sort.sortBy, sortOrder: sort.sortOrder });
       setDocuments(response.data.data.items);
       setTotal(response.data.data.total);
     } catch {
@@ -146,6 +147,30 @@ export function DocumentsListPage() {
     setFilters({ search: "", status: "", area: "", type: "" });
     setPage(1);
   };
+
+  const handleSort = (field: string) => {
+    setSort(prev => ({
+      sortBy: field,
+      sortOrder: prev.sortBy === field && prev.sortOrder === "asc" ? "desc" : "asc",
+    }));
+    setPage(1);
+  };
+
+  const SortIcon = ({ field }: { field: string }) => (
+    <span className="ml-1 inline-flex flex-col opacity-50 group-hover:opacity-100">
+      {sort.sortBy === field ? (
+        <svg className="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+          {sort.sortOrder === "asc"
+            ? <path fillRule="evenodd" d="M14.707 12.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L10 15.586l3.293-3.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            : <path fillRule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L10 4.414 6.707 7.707a1 1 0 01-1.414 0z" clipRule="evenodd" />}
+        </svg>
+      ) : (
+        <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
+        </svg>
+      )}
+    </span>
+  );
 
   const hasFilters = !!(filters.search || filters.status || filters.area || filters.type);
   const totalPages = Math.ceil(total / limit);
@@ -237,8 +262,26 @@ export function DocumentsListPage() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
-                {["Código","Título","Estado","Tipo","Área","Versión",""].map(h=>(
-                  <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                {([
+                  { label: "Código", field: "code" },
+                  { label: "Título", field: "title" },
+                  { label: "Estado", field: null },
+                  { label: "Tipo", field: null },
+                  { label: "Área", field: "area" },
+                  { label: "Versión", field: null },
+                  { label: "Creado", field: "createdAt" },
+                  { label: "", field: null },
+                ] as { label: string; field: string | null }[]).map(({ label, field }) => (
+                  <th
+                    key={label}
+                    onClick={() => field && handleSort(field)}
+                    className={`px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide group ${field ? "cursor-pointer hover:text-gray-700 select-none" : ""}`}
+                  >
+                    <span className="flex items-center">
+                      {label}
+                      {field && <SortIcon field={field} />}
+                    </span>
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -255,6 +298,7 @@ export function DocumentsListPage() {
                   <td className="px-5 py-3.5 text-sm text-gray-600">{TYPE_LABELS[doc.type] || doc.type}</td>
                   <td className="px-5 py-3.5 text-sm text-gray-600">{doc.area || "—"}</td>
                   <td className="px-5 py-3.5 text-sm text-gray-600">{doc.currentVersionLabel}</td>
+                  <td className="px-5 py-3.5 text-xs text-gray-400 whitespace-nowrap">{format(new Date(doc.createdAt), "dd/MM/yyyy")}</td>
                   <td className="px-5 py-3.5">
                     <Link to={`/documents/${doc.id}`}
                       className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800">

@@ -153,7 +153,7 @@ export async function getDocument(documentId: string) {
         select: { id: true, versionLabel: true, fileName: true, fileSize: true, mimeType: true, status: true, createdAt: true, createdBy: true },
       },
       comments: {
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: "asc" },
         include: {
           authorUser: {
             select: { id: true, firstName: true, lastName: true, email: true },
@@ -175,8 +175,26 @@ export async function getDocument(documentId: string) {
     throw new NotFoundError("Document not found");
   }
 
-  return formatDocumentWithDetails(document);
+  // Enrich versions with creator user info
+  const creatorIds = [...new Set((document.versions || []).map((v: any) => v.createdBy).filter(Boolean))];
+  const creators = creatorIds.length > 0
+    ? await prisma.user.findMany({
+        where: { id: { in: creatorIds as string[] } },
+        select: { id: true, firstName: true, lastName: true },
+      })
+    : [];
+  const creatorMap = Object.fromEntries(creators.map((u: any) => [u.id, u]));
+  const enrichedDoc = {
+    ...document,
+    versions: (document.versions || []).map((v: any) => ({
+      ...v,
+      _createdByUser: creatorMap[v.createdBy] ?? null,
+    })),
+  };
+
+  return formatDocumentWithDetails(enrichedDoc);
 }
+
 
 export async function updateDocument(
   documentId: string,
@@ -502,6 +520,48 @@ export async function publishDocument(
   return formatDocument(updated);
 }
 
+export async function getMyTasks(userId: string) {
+  const tasks = await prisma.reviewTask.findMany({
+    where: { assignedTo: userId, status: "PENDING" },
+    orderBy: { createdAt: "desc" },
+    include: {
+      document: {
+        select: {
+          id: true, code: true, title: true, area: true, type: true,
+          status: true, currentVersionLabel: true, createdAt: true,
+        },
+      },
+    },
+  });
+  return tasks.map((t: any) => ({
+    id: t.id,
+    status: t.status,
+    createdAt: t.createdAt,
+    document: t.document,
+  }));
+}
+
+export async function addDocumentComment(
+  documentId: string,
+  userId: string,
+  content: string
+) {
+  const document = await prisma.document.findUnique({ where: { id: documentId } });
+  if (!document) throw new NotFoundError("Document not found");
+  const comment = await prisma.documentComment.create({
+    data: { documentId, author: userId, content },
+    include: {
+      authorUser: { select: { id: true, firstName: true, lastName: true, email: true } },
+    },
+  });
+  return {
+    id: comment.id,
+    content: comment.content,
+    author: comment.authorUser,
+    createdAt: comment.createdAt,
+  };
+}
+
 export async function listDocuments(
   page: number = 1,
   limit: number = 20,
@@ -510,7 +570,8 @@ export async function listDocuments(
     area?: string;
     type?: string;
     search?: string;
-  }
+  },
+  sort?: { sortBy?: string; sortOrder?: "asc" | "desc" }
 ) {
   const skip = (page - 1) * limit;
 
@@ -532,12 +593,16 @@ export async function listDocuments(
     ];
   }
 
+  const SORTABLE = ["createdAt", "updatedAt", "title", "code", "area", "nextReviewDate"];
+  const sortField = SORTABLE.includes(sort?.sortBy ?? "") ? sort!.sortBy! : "createdAt";
+  const sortOrder = sort?.sortOrder === "asc" ? "asc" : "desc";
+
   const [documents, total] = await Promise.all([
     prisma.document.findMany({
       where,
       skip,
       take: limit,
-      orderBy: { createdAt: "desc" },
+      orderBy: { [sortField]: sortOrder },
     }),
     prisma.document.count({ where }),
   ]);
@@ -727,7 +792,17 @@ function formatDocument(doc: any) {
 function formatDocumentWithDetails(doc: any) {
   return {
     ...formatDocument(doc),
-    versions: doc.versions,
+    versions: (doc.versions || []).map((v: any) => ({
+      id: v.id,
+      versionLabel: v.versionLabel,
+      fileName: v.fileName,
+      fileSize: v.fileSize,
+      mimeType: v.mimeType,
+      status: v.status,
+      createdAt: v.createdAt,
+      createdBy: v.createdBy,
+      createdByUser: v._createdByUser ?? null,
+    })),
     comments: (doc.comments || []).map((c: any) => ({
       id: c.id,
       content: c.content,

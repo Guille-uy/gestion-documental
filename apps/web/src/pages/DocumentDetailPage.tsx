@@ -29,6 +29,8 @@ export function DocumentDetailPage() {
   const [selectedReviewers, setSelectedReviewers] = useState<string[]>([]);
   const [reviewComentario, setReviewComentario] = useState("");
   const [actionComentario, setActionComentario] = useState("");
+  const [commentText, setCommentText] = useState("");
+  const [submittingComment, setSubmittingComment] = useState(false);
   const uploadFormRef = useRef<HTMLDivElement>(null);
   const reviewFormRef = useRef<HTMLDivElement>(null);
   const approveFormRef = useRef<HTMLDivElement>(null);
@@ -53,6 +55,22 @@ export function DocumentDetailPage() {
       navigate("/documents");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAddComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim() || !documentId) return;
+    setSubmittingComment(true);
+    try {
+      await apiService.addDocumentComment(documentId, commentText);
+      setCommentText("");
+      fetchDocument();
+      toast.success("Comentario agregado");
+    } catch {
+      toast.error("Error al agregar comentario");
+    } finally {
+      setSubmittingComment(false);
     }
   };
 
@@ -474,20 +492,45 @@ export function DocumentDetailPage() {
         </div>
       )}
 
-      {doc.comments && doc.comments.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="font-bold text-gray-900 mb-4">Comentarios</h2>
-          <div className="space-y-4">
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="font-bold text-gray-900 mb-4">Comentarios</h2>
+        {doc.comments && doc.comments.length > 0 ? (
+          <div className="space-y-4 mb-6">
             {doc.comments.map((comment: any) => (
-              <div key={comment.id} className="border-l-4 border-blue-500 pl-4">
-                <p className="font-medium text-gray-900">{comment.author.firstName} {comment.author.lastName}</p>
-                <p className="text-gray-600 text-sm">{comment.content}</p>
-                <p className="text-gray-500 text-xs mt-1">{formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: es })}</p>
+              <div key={comment.id} className="flex gap-3">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold">
+                  {comment.author?.firstName?.[0]}{comment.author?.lastName?.[0]}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm text-gray-900">{comment.author?.firstName} {comment.author?.lastName}</span>
+                    <span className="text-xs text-gray-400">{formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: es })}</span>
+                  </div>
+                  <p className="text-gray-700 text-sm mt-0.5">{comment.content}</p>
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <p className="text-sm text-gray-400 mb-6">No hay comentarios aún. Sé el primero en comentar.</p>
+        )}
+        <form onSubmit={handleAddComment} className="flex gap-2">
+          <textarea
+            value={commentText}
+            onChange={e => setCommentText(e.target.value)}
+            placeholder="Escribí un comentario..."
+            rows={2}
+            className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          />
+          <button
+            type="submit"
+            disabled={submittingComment || !commentText.trim()}
+            className="self-end px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {submittingComment ? "..." : "Enviar"}
+          </button>
+        </form>
+      </div>
 
       <DocumentFlowDiagram currentStatus={doc.status} doc={doc} />
 
@@ -496,11 +539,21 @@ export function DocumentDetailPage() {
           <h2 className="font-bold text-gray-900 mb-4">Historial de Versiones</h2>
           <div className="space-y-3">
             {doc.versions.map((version: any) => (
-              <div key={version.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+              <div key={version.id} className="flex justify-between items-start p-3 bg-gray-50 rounded">
                 <div>
-                  <span className="font-medium">Versión {version.versionLabel}</span>
-                  {version.fileName && <p className="text-gray-500 text-sm">{version.fileName} {version.fileSize && `(${(version.fileSize / 1024 / 1024).toFixed(2)} MB)`}</p>}
-                  <p className="text-gray-400 text-xs">{formatDistanceToNow(new Date(version.createdAt), { addSuffix: true, locale: es })}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Versión {version.versionLabel}</span>
+                    {version.changesSummary && (
+                      <span className="text-xs text-gray-500"> — {version.changesSummary}</span>
+                    )}
+                  </div>
+                  {version.fileName && <p className="text-gray-500 text-sm mt-0.5">{version.fileName} {version.fileSize && `(${(version.fileSize / 1024 / 1024).toFixed(2)} MB)`}</p>}
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-gray-400 text-xs">{formatDistanceToNow(new Date(version.createdAt), { addSuffix: true, locale: es })}</p>
+                    {version.createdByUser && (
+                      <p className="text-gray-400 text-xs">· {version.createdByUser.firstName} {version.createdByUser.lastName}</p>
+                    )}
+                  </div>
                 </div>
                 <EstadoBadge status={version.status} />
               </div>

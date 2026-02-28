@@ -49,7 +49,7 @@ export function AuditLogsPagina() {
   const [isLoading, setIsLoading] = useState(true);
   const [Pagina, setPagina] = useState(1);
   const [total, setTotal] = useState(0);
-  const [filters, setFilters] = useState({ action: "", userId: "", entityType: "" });
+  const [filters, setFilters] = useState({ action: "", userId: "", entityType: "", dateFrom: "", dateTo: "" });
   const [exporting, setExporting] = useState(false);
   const limit = 50;
 
@@ -58,7 +58,7 @@ export function AuditLogsPagina() {
   const fetchLogs = async () => {
     try {
       setIsLoading(true);
-      const response = await apiService.getAuditLogs({ page: Pagina, limit, ...filters });
+      const response = await apiService.getAuditLogs({ page: Pagina, limit, ...filters, from: filters.dateFrom || undefined, to: filters.dateTo || undefined });
       setLogs(response.data.data.items);
       setTotal(response.data.data.total);
     } catch {
@@ -78,7 +78,7 @@ export function AuditLogsPagina() {
   const exportCSV = async () => {
     try {
       setExporting(true);
-      const response = await apiService.getAuditLogs({ page: 1, limit: 5000, ...filters });
+      const response = await apiService.getAuditLogs({ page: 1, limit: 5000, ...filters, from: filters.dateFrom || undefined, to: filters.dateTo || undefined });
       const items: any[] = response.data.data.items;
       const header = ["Fecha","Hora","Usuario","Email","Acción","Entidad","EntityID"];
       const rows = items.map(l => [
@@ -144,6 +144,18 @@ export function AuditLogsPagina() {
             placeholder="Tipo de entidad..."
             className="py-2 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[140px]"
           />
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-500 font-medium whitespace-nowrap">Desde</label>
+            <input type="date" name="dateFrom" value={filters.dateFrom} onChange={handleFilterChange}
+              className="py-2 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-500 font-medium whitespace-nowrap">Hasta</label>
+            <input type="date" name="dateTo" value={filters.dateTo} onChange={handleFilterChange}
+              className="py-2 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
         </div>
       </div>
 

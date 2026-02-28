@@ -14,6 +14,7 @@ import { AuditLogsPage } from "./pages/AuditLogsPage.js";
 import { ConfigPage } from "./pages/ConfigPage.js";
 import { ISOFlowPage } from "./pages/ISOFlowPage.js";
 import { ProfilePage } from "./pages/ProfilePage.js";
+import { MyTasksPage } from "./pages/MyTasksPage.js";
 import { useAuthStore } from "./store/auth.js";
 
 function ProtectedLayout() {
@@ -54,6 +55,7 @@ function App() {
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/flujo-iso" element={<ISOFlowPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/mis-tareas" element={<MyTasksPage />} />
 
             {/* Admin only */}
             <Route element={<AdminLayout />}>

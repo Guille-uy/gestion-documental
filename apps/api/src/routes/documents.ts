@@ -13,6 +13,8 @@ import {
   createNewVersionHandler,
   confirmReadHandler,
   getConfirmationsHandler,
+  myTasksHandler,
+  addCommentHandler,
 } from "../controllers/document.js";
 import { authMiddleware } from "../middleware/auth.js";
 
@@ -31,6 +33,9 @@ const upload = multer({
 
 // All document routes require authentication
 router.use(authMiddleware);
+
+// My pending review tasks
+router.get("/my-tasks", myTasksHandler);
 
 // Document CRUD
 router.post("/", createDocumentHandler);
@@ -51,5 +56,8 @@ router.post("/:documentId/new-version", createNewVersionHandler);
 // Read confirmation (#12)
 router.post("/:documentId/confirm-read", confirmReadHandler);
 router.get("/:documentId/confirmations", getConfirmationsHandler);
+
+// Document comments
+router.post("/:documentId/comments", addCommentHandler);
 
 export default router;

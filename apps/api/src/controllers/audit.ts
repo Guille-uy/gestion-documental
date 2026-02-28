@@ -18,6 +18,18 @@ export const getAuditLogsHandler = asyncHandler(
     if (req.query.entityType) {
       filters.entityType = req.query.entityType as string;
     }
+    if (req.query.from) {
+      const d = new Date(req.query.from as string);
+      if (!isNaN(d.getTime())) filters.from = d;
+    }
+    if (req.query.to) {
+      // Include the full end day
+      const d = new Date(req.query.to as string);
+      if (!isNaN(d.getTime())) {
+        d.setHours(23, 59, 59, 999);
+        filters.to = d;
+      }
+    }
 
     const result = await getAuditLogs(page, Math.min(limit, 500), filters);
 

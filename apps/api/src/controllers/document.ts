@@ -15,6 +15,8 @@ import {
   createNewVersion,
   confirmDocumentRead,
   getDocumentReadConfirmations,
+  getMyTasks,
+  addDocumentComment,
 } from "../services/document.js";
 import { CreateDocumentSchema, UpdateDocumentSchema } from "@dms/shared";
 
@@ -243,7 +245,12 @@ export const listDocumentsHandler = asyncHandler(
       filters.area = req.user.area;
     }
 
-    const result = await listDocuments(page, Math.min(limit, 100), filters);
+    const sort = {
+      sortBy: req.query.sortBy as string | undefined,
+      sortOrder: (req.query.sortOrder as "asc" | "desc" | undefined) ?? "desc",
+    };
+
+    const result = await listDocuments(page, Math.min(limit, 100), filters, sort);
 
     res.json({
       success: true,
@@ -309,4 +316,28 @@ export const getConfirmationsHandler = asyncHandler(
     res.json({ success: true, data: result });
   }
 );
+
+export const myTasksHandler = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: "Not authenticated" });
+    }
+    const tasks = await getMyTasks(req.user.userId);
+    res.json({ success: true, data: tasks });
+  }
+);
+
+export const addCommentHandler = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: "Not authenticated" });
+    }
+    const { documentId } = req.params;
+    const { content } = req.body;
+    if (!content?.trim()) {
+      return res.status(400).json({ success: false, error: "El comentario no puede estar vacío" });
+    }
+    const comment = await addDocumentComment(documentId, req.user.userId, content.trim());
+    res.status(201).json({ success: true, data: comment });
+  }
 );
