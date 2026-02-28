@@ -74,6 +74,32 @@ export function DocumentDetailPage() {
     }
   };
 
+  // Mejora 15: Archive & Delete
+  const handleArchive = async () => {
+    if (!documentId || !doc) return;
+    if (!window.confirm(`¿Archivar "${doc.title}"?\n\nEl documento quedará marcado como Obsoleto.`)) return;
+    try {
+      await apiService.archiveDocument(documentId);
+      toast.success("Documento archivado (Obsoleto)");
+      fetchDocument();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Error al archivar documento");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!documentId || !doc) return;
+    if (!window.confirm(`¿ELIMINAR PERMANENTEMENTE "${doc.title}"?\n\nEsta acción no se puede deshacer.`)) return;
+    if (!window.confirm("Confirmá nuevamente: se perderán todos los datos del documento.")) return;
+    try {
+      await apiService.deleteDocument(documentId);
+      toast.success("Documento eliminado");
+      navigate("/documents");
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Error al eliminar documento");
+    }
+  };
+
   const fetchReviewers = async () => {
     try {
       const response = await apiService.getUsers(1, 50);
@@ -267,15 +293,44 @@ export function DocumentDetailPage() {
   const canReview = (user?.role === "REVIEWER" || user?.role === "APPROVER" || user?.role === "ADMIN") && doc.status === "IN_REVIEW";
   const canPublicar = (user?.role === "APPROVER" || user?.role === "ADMIN" || user?.role === "QUALITY_MANAGER") && doc.status === "IN_REVIEW" && doc.reviewTasks?.length > 0 && doc.reviewTasks?.every((t: any) => t.status !== "PENDING");
   const canNuevaVersion = (user?.role === "DOCUMENT_OWNER" || user?.role === "ADMIN" || user?.role === "QUALITY_MANAGER") && doc.status === "PUBLISHED";
+  const isAdmin = user?.role === "ADMIN" || user?.role === "QUALITY_MANAGER";
+  const canArchive = isAdmin && doc.status !== "OBSOLETE";
+  const canDelete = isAdmin && (doc.status === "DRAFT" || doc.status === "OBSOLETE");
+  const appUrl = window.location.origin;
+  const docUrl = `${appUrl}/documents/${doc.id}`;
 
   return (
     <div className="space-y-7">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{doc.title}</h1>
           <p className="text-gray-600 mt-1">Código: <span className="font-mono font-medium">{doc.code}</span></p>
         </div>
-        <EstadoBadge status={doc.status} />
+        <div className="flex items-center gap-2 shrink-0">
+          <EstadoBadge status={doc.status} />
+          {canArchive && (
+            <button
+              onClick={handleArchive}
+              title="Archivar documento (pasa a Obsoleto)"
+              className="p-2 rounded-lg border border-amber-200 text-amber-600 hover:bg-amber-50 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+              </svg>
+            </button>
+          )}
+          {canDelete && (
+            <button
+              onClick={handleDelete}
+              title="Eliminar documento permanentemente"
+              className="p-2 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -531,6 +586,29 @@ export function DocumentDetailPage() {
           </button>
         </form>
       </div>
+
+      {/* Mejora 12: QR code para documentos publicados */}
+      {doc.status === "PUBLISHED" && (
+        <div className="bg-white rounded-lg shadow p-5 flex items-center gap-5">
+          <img
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(docUrl)}`}
+            alt="QR code del documento"
+            className="w-24 h-24 rounded border border-gray-200"
+          />
+          <div>
+            <h2 className="font-bold text-gray-900 mb-1">Código QR</h2>
+            <p className="text-sm text-gray-500 mb-2">Escánealo para acceder a este documento directamente.</p>
+            <a
+              href={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(docUrl)}`}
+              download={`QR_${doc.code}.png`}
+              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+              target="_blank" rel="noopener noreferrer"
+            >
+              Descargar QR ↓
+            </a>
+          </div>
+        </div>
+      )}
 
       <DocumentFlowDiagram currentStatus={doc.status} doc={doc} />
 

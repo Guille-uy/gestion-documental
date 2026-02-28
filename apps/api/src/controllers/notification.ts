@@ -18,7 +18,8 @@ export const getNotificationsHandler = asyncHandler(
     const limit = parseInt(req.query.limit as string) || 20;
     const unreadOnly = req.query.unreadOnly === "true";
     const archivedOnly = req.query.archivedOnly === "true";
-    const result = await getNotifications(req.user.userId, page, limit, unreadOnly, archivedOnly);
+    const type = req.query.type as string | undefined;
+    const result = await getNotifications(req.user.userId, page, limit, unreadOnly, archivedOnly, type);
     res.json({ success: true, data: result });
   }
 );

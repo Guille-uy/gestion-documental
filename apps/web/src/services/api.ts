@@ -228,6 +228,20 @@ class ApiService {
   addDocumentComment(documentId: string, content: string) {
     return this.client.post(`/documents/${documentId}/comments`, { content });
   }
+
+  // Mejora 15: Archive & Delete
+  archiveDocument(documentId: string) {
+    return this.client.patch(`/documents/${documentId}/archive`);
+  }
+
+  deleteDocument(documentId: string) {
+    return this.client.delete(`/documents/${documentId}`);
+  }
+
+  // Mejora 8: Bulk operations
+  bulkDocuments(documentIds: string[], action: string) {
+    return this.client.patch("/documents/bulk", { documentIds, action });
+  }
 }
 
 export const apiService = new ApiService();

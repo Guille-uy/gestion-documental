@@ -15,6 +15,9 @@ import {
   getConfirmationsHandler,
   myTasksHandler,
   addCommentHandler,
+  archiveDocumentHandler,
+  deleteDocumentHandler,
+  bulkDocumentsHandler,
 } from "../controllers/document.js";
 import { authMiddleware } from "../middleware/auth.js";
 
@@ -37,11 +40,16 @@ router.use(authMiddleware);
 // My pending review tasks
 router.get("/my-tasks", myTasksHandler);
 
+// Bulk operations
+router.patch("/bulk", bulkDocumentsHandler);
+
 // Document CRUD
 router.post("/", createDocumentHandler);
 router.get("/", listDocumentsHandler);
 router.get("/:documentId", getDocumentHandler);
 router.patch("/:documentId", updateDocumentHandler);
+router.patch("/:documentId/archive", archiveDocumentHandler);
+router.delete("/:documentId", deleteDocumentHandler);
 
 // File operations
 router.post("/:documentId/upload", upload.single("file"), uploadFileHandler);

@@ -13,13 +13,14 @@ export function NotificacionesPagina() {
   const [pagina, setPagina] = useState(1);
   const [total, setTotal] = useState(0);
   const [soloSinLeer, setSoloSinLeer] = useState(false);
+  const [tipoFiltro, setTipoFiltro] = useState("");
   const [tab, setTab] = useState<Tab>("activas");
 
   const limit = 20;
 
   useEffect(() => {
     fetchNotificaciones();
-  }, [pagina, soloSinLeer, tab]);
+  }, [pagina, soloSinLeer, tipoFiltro, tab]);
 
   const fetchNotificaciones = async () => {
     try {
@@ -30,6 +31,7 @@ export function NotificacionesPagina() {
       } else {
         params.unreadOnly = soloSinLeer;
       }
+      if (tipoFiltro) params.type = tipoFiltro;
       const response = await apiService.getNotifications(params);
       setNotificaciones(response.data.data.items);
       setTotal(response.data.data.total);
@@ -116,15 +118,27 @@ export function NotificacionesPagina() {
       {/* Filter — only in active tab */}
       {tab === "activas" && (
         <div className="bg-white rounded-lg shadow p-4">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={soloSinLeer}
-              onChange={(e) => { setSoloSinLeer(e.target.checked); setPagina(1); }}
-              className="rounded"
-            />
-            <span className="text-sm font-medium">Mostrar solo sin leer</span>
-          </label>
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={soloSinLeer}
+                onChange={(e) => { setSoloSinLeer(e.target.checked); setPagina(1); }}
+                className="rounded"
+              />
+              <span className="text-sm font-medium">Mostrar solo sin leer</span>
+            </label>
+            <select value={tipoFiltro} onChange={(e) => { setTipoFiltro(e.target.value); setPagina(1); }}
+              className="py-1.5 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              <option value="">Todos los tipos</option>
+              <option value="REVIEW_REMINDER">Recordatorio de revisión</option>
+              <option value="DOCUMENT_SUBMITTED">Documento enviado</option>
+              <option value="DOCUMENT_APPROVED">Documento aprobado</option>
+              <option value="DOCUMENT_PUBLISHED">Documento publicado</option>
+              <option value="REVIEW_REQUESTED">Revisión requerida</option>
+              <option value="DOCUMENT_REJECTED">Documento rechazado</option>
+            </select>
+          </div>
         </div>
       )}
 

@@ -172,8 +172,54 @@ export function DocumentsListPage() {
     </span>
   );
 
+  const isAdmin = !!user && PRIVILEGED_ROLES.includes(user.role);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
   const hasFilters = !!(filters.search || filters.status || filters.area || filters.type);
   const totalPages = Math.ceil(total / limit);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === documents.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(documents.map((d: any) => d.id)));
+    }
+  };
+
+  const handleBulkArchive = async () => {
+    if (!window.confirm(`¿Marcar ${selectedIds.size} documento(s) como Obsoleto?`)) return;
+    setBulkLoading(true);
+    try {
+      await apiService.bulkDocuments(Array.from(selectedIds), "OBSOLETE");
+      toast.success(`${selectedIds.size} documento(s) marcados como obsoletos`);
+      setSelectedIds(new Set());
+      fetchDocuments();
+    } catch { toast.error("Error en operación masiva"); }
+    finally { setBulkLoading(false); }
+  };
+
+  const handleExportCsv = () => {
+    const header = ["Código","Título","Tipo","Área","Estado","Versión","Creado"];
+    const rows = documents.map((d: any) => [
+      d.code, d.title, TYPE_LABELS[d.type] || d.type, d.area || "",
+      STATUS_LABELS[d.status] || d.status, d.currentVersionLabel,
+      new Date(d.createdAt).toLocaleDateString("es-AR"),
+    ]);
+    const csv = [header, ...rows].map(r => r.map((v: any) => `"${v ?? ""}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `documentos_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-6">
@@ -183,7 +229,14 @@ export function DocumentsListPage() {
           <h1 className="text-2xl font-bold text-gray-900">Documentos</h1>
           {!isLoading && <p className="text-sm text-gray-500 mt-0.5">{total} documento{total !== 1 ? "s" : ""} encontrado{total !== 1 ? "s" : ""}</p>}
         </div>
-        <Link to="/documents/create"><Button>+ Nuevo documento</Button></Link>
+        <div className="flex items-center gap-2">
+          <button onClick={handleExportCsv}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
+            Exportar CSV
+          </button>
+          <Link to="/documents/create"><Button>+ Nuevo documento</Button></Link>
+        </div>
       </div>
 
       {/* Filter bar */}
@@ -251,6 +304,19 @@ export function DocumentsListPage() {
         </div>
       </div>
 
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && isAdmin && (
+        <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+          <span className="text-sm font-medium text-blue-800">{selectedIds.size} documento(s) seleccionado(s)</span>
+          <button onClick={handleBulkArchive} disabled={bulkLoading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50 rounded-lg transition-colors">
+            {bulkLoading ? "Procesando..." : "Marcar como Obsoleto"}
+          </button>
+          <button onClick={() => setSelectedIds(new Set())}
+            className="text-xs text-blue-600 hover:text-blue-800 underline">Cancelar selección</button>
+        </div>
+      )}
+
       {/* Content */}
       {isLoading ? (
         viewMode === "table" ? <TableSkeleton /> : <CardsSkeleton />
@@ -262,6 +328,14 @@ export function DocumentsListPage() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
+                {isAdmin && (
+                  <th className="px-4 py-3.5 w-10">
+                    <input type="checkbox"
+                      checked={documents.length > 0 && selectedIds.size === documents.length}
+                      onChange={toggleSelectAll}
+                      className="rounded border-gray-300 text-blue-600 cursor-pointer" />
+                  </th>
+                )}
                 {([
                   { label: "Código", field: "code" },
                   { label: "Título", field: "title" },
@@ -287,7 +361,15 @@ export function DocumentsListPage() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {documents.map((doc) => (
-                <tr key={doc.id} className="group hover:bg-blue-50/30 transition-colors">
+                <tr key={doc.id} className={`group hover:bg-blue-50/30 transition-colors ${selectedIds.has(doc.id) ? "bg-blue-50/50" : ""}`}>
+                  {isAdmin && (
+                    <td className="px-4 py-3.5">
+                      <input type="checkbox"
+                        checked={selectedIds.has(doc.id)}
+                        onChange={() => toggleSelect(doc.id)}
+                        className="rounded border-gray-300 text-blue-600 cursor-pointer" />
+                    </td>
+                  )}
                   <td className="px-5 py-3.5">
                     <span className="font-mono text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">{doc.code}</span>
                   </td>

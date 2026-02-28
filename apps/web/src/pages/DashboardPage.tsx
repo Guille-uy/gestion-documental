@@ -5,6 +5,7 @@ import { useAuthStore } from "../store/auth.js";
 import toast from "react-hot-toast";
 import { differenceInDays, formatDistanceToNow, format, isAfter, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface DashboardData {
@@ -146,8 +147,6 @@ export function DashboardPage() {
   }
 
   if (!data) return null;
-
-  const maxArea = Math.max(...data.byArea.map((a) => a.count), 1);
 
   return (
     <div className="space-y-8">
@@ -393,27 +392,45 @@ export function DashboardPage() {
             ))}
           </div>
 
-          {/* Mini bar chart – document count visual */}
+          {/* Mini donut chart – Recharts */}
           <div className="mt-6 pt-5 border-t border-gray-100">
-            <p className="text-xs font-medium text-gray-500 mb-3">Visión general</p>
-            <div className="flex items-end gap-2 h-20">
-              {[
-                { label: "Bor.", val: data.draft, color: "bg-gray-300" },
-                { label: "Rev.", val: data.inReview, color: data.stale7 > 0 ? "bg-amber-400" : "bg-blue-400" },
-                { label: "Pub.", val: data.published, color: "bg-emerald-500" },
-                { label: "Obs.", val: data.obsolete, color: "bg-red-300" },
-              ].map((b) => {
-                const pct = data.total > 0 ? (b.val / data.total) * 100 : 0;
-                return (
-                  <div key={b.label} className="flex flex-col items-center gap-1 flex-1">
-                    <span className="text-xs font-bold text-gray-700">{b.val}</span>
-                    <div className="w-full bg-gray-100 rounded-t flex flex-col justify-end" style={{ height: "52px" }}>
-                      <div className={`w-full rounded-t ${b.color} transition-all duration-700`} style={{ height: `${Math.max(pct, b.val > 0 ? 8 : 0)}%` }} />
-                    </div>
-                    <span className="text-[10px] text-gray-500">{b.label}</span>
+            <p className="text-xs font-medium text-gray-500 mb-3">Distribución proporcional</p>
+            <div className="flex items-center gap-4">
+              <ResponsiveContainer width={120} height={120}>
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: "Publicados", value: data.published || 0 },
+                      { name: "En Revisión", value: data.inReview || 0 },
+                      { name: "Borradores", value: data.draft || 0 },
+                      { name: "Obsoletos", value: data.obsolete || 0 },
+                    ].filter(d => d.value > 0)}
+                    cx="50%" cy="50%"
+                    innerRadius={35} outerRadius={55}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {["#10b981", "#f59e0b", "#9ca3af", "#f87171"].map((color, i) => (
+                      <Cell key={i} fill={color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(v: any) => [`${v} docs`]} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="space-y-1">
+                {[
+                  { label: "Publicados", val: data.published, color: "bg-emerald-500" },
+                  { label: "En Revisión", val: data.inReview, color: "bg-amber-400" },
+                  { label: "Borradores", val: data.draft, color: "bg-gray-400" },
+                  { label: "Obsoletos", val: data.obsolete, color: "bg-red-400" },
+                ].map(s => (
+                  <div key={s.label} className="flex items-center gap-1.5">
+                    <div className={`w-2 h-2 rounded-full ${s.color}`} />
+                    <span className="text-[11px] text-gray-600">{s.label}</span>
+                    <span className="text-[11px] font-bold text-gray-800 ml-auto">{s.val}</span>
                   </div>
-                );
-              })}
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -421,26 +438,37 @@ export function DashboardPage() {
         {/* Documentos por área – 1/3 width */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-base font-bold text-gray-900 mb-1">Por área</h2>
-          <p className="text-xs text-gray-500 mb-5">Distribución de documentos</p>
+          <p className="text-xs text-gray-500 mb-4">Distribución de documentos</p>
           {data.byArea.length === 0 ? (
             <p className="text-sm text-gray-400">Sin datos de área</p>
           ) : (
-            <div className="space-y-4">
-              {data.byArea.map((a) => (
-                <div key={a.name}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium text-gray-700 truncate max-w-[130px]">{a.name}</span>
-                    <span className="text-xs font-bold text-gray-900 shrink-0 ml-1">{a.count}</span>
-                  </div>
-                  <div className="w-full bg-gray-100 rounded-full h-1.5">
-                    <div
-                      className="h-1.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-700"
-                      style={{ width: `${(a.count / maxArea) * 100}%` }}
+            <ResponsiveContainer width="100%" height={data.byArea.length * 40 + 20}>
+              <BarChart
+                layout="vertical"
+                data={data.byArea}
+                margin={{ top: 0, right: 24, left: 0, bottom: 0 }}
+              >
+                <XAxis type="number" hide />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  width={90}
+                  tick={{ fontSize: 11, fill: "#6b7280" }}
+                />
+                <Tooltip
+                  cursor={{ fill: "#f0f4ff" }}
+                  formatter={(v: any) => [`${v} docs`, ""]}
+                />
+                <Bar dataKey="count" radius={[0, 6, 6, 0]}>
+                  {data.byArea.map((_, i) => (
+                    <Cell
+                      key={i}
+                      fill={`hsl(${220 + i * 25}, 70%, ${60 - i * 4}%)`}
                     />
-                  </div>
-                </div>
-              ))}
-            </div>
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           )}
         </div>
       </div>

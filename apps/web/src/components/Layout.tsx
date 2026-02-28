@@ -73,6 +73,7 @@ export function Layout({ children }: LayoutProps) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => typeof window !== "undefined" && localStorage.getItem("theme") === "dark");
   const dropdownRef = useRef<HTMLDivElement>(null);
   // #1 Global search
   const [searchQuery, setSearchQuery] = useState("");
@@ -80,6 +81,11 @@ export function Layout({ children }: LayoutProps) {
   const [showSearchDrop, setShowSearchDrop] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", darkMode);
+    localStorage.setItem("theme", darkMode ? "dark" : "light");
+  }, [darkMode]);
 
   useEffect(() => {
     const fetchUnreadCount = async () => {
@@ -148,6 +154,8 @@ export function Layout({ children }: LayoutProps) {
       icon5: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg> },
     { to: "/mis-tareas", label: "Mis Tareas",
       icon5: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 12l2 2 4-4"/></svg> },
+    { to: "/calendario", label: "Calendario",
+      icon5: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
     { to: "/notifications", label: "Notificaciones", badge: unreadCount,
       icon5: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg> },
   ];
@@ -168,7 +176,7 @@ export function Layout({ children }: LayoutProps) {
     : "?";
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 dark:text-gray-100">
       <style>{NAV_STYLE}</style>
 
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
@@ -214,6 +222,19 @@ export function Layout({ children }: LayoutProps) {
 
                   {/* separator before profile */}
                   <span className="nav-sep ml-1" />
+
+                  {/* Dark mode toggle */}
+                  <button onClick={() => setDarkMode(d => !d)}
+                    title={darkMode ? "Modo claro" : "Modo oscuro"}
+                    className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    {darkMode ? (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                    )}
+                  </button>
+
+                  <span className="nav-sep" />
 
                   {/* #1 Global search */}
                   <div className="relative" ref={searchRef}>

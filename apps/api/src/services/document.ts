@@ -821,3 +821,88 @@ function formatDocumentWithDetails(doc: any) {
     })),
   };
 }
+
+// ── Mejora 15: Archive & Delete ─────────────────────────────────────────────
+
+/** Mark a document as OBSOLETE (soft-archive) */
+export async function archiveDocument(documentId: string, userId: string) {
+  const doc = await prisma.document.findUnique({ where: { id: documentId } });
+  if (!doc) throw new NotFoundError("Document not found");
+
+  const updated = await prisma.document.update({
+    where: { id: documentId },
+    data: { status: "OBSOLETE", updatedBy: userId },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId,
+      action: "ARCHIVE",
+      entityType: "Document",
+      entityId: documentId,
+      documentId,
+    },
+  });
+
+  return formatDocument(updated);
+}
+
+/** Permanently delete a document (only DRAFT or OBSOLETE allowed) */
+export async function deleteDocument(documentId: string, userId: string) {
+  const doc = await prisma.document.findUnique({ where: { id: documentId } });
+  if (!doc) throw new NotFoundError("Document not found");
+
+  if (!["DRAFT", "OBSOLETE"].includes(doc.status)) {
+    throw new ValidationError("Solo se pueden eliminar documentos en estado Borrador u Obsoleto");
+  }
+
+  await prisma.document.delete({ where: { id: documentId } });
+
+  await prisma.auditLog.create({
+    data: {
+      userId,
+      action: "DELETE",
+      entityType: "Document",
+      entityId: documentId,
+    },
+  });
+}
+
+// ── Mejora 8: Bulk operations ────────────────────────────────────────────────
+
+/** Bulk update documents status — allowed actions: OBSOLETE */
+export async function bulkUpdateDocuments(
+  documentIds: string[],
+  action: "OBSOLETE",
+  userId: string
+) {
+  const results: { id: string; success: boolean; error?: string }[] = [];
+
+  for (const id of documentIds) {
+    try {
+      const doc = await prisma.document.findUnique({ where: { id } });
+      if (!doc) { results.push({ id, success: false, error: "Not found" }); continue; }
+
+      await prisma.document.update({
+        where: { id },
+        data: { status: action, updatedBy: userId },
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          userId,
+          action: "ARCHIVE",
+          entityType: "Document",
+          entityId: id,
+          documentId: id,
+        },
+      });
+
+      results.push({ id, success: true });
+    } catch (err: any) {
+      results.push({ id, success: false, error: err.message });
+    }
+  }
+
+  return results;
+}

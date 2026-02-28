@@ -21,6 +21,8 @@ export function UsuariosPagina() {
   const [total, setTotal] = useState(0);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [mostrarInactivos, setMostrarInactivos] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResults, setImportResults] = useState<{email: string; success: boolean; error?: string}[] | null>(null);
   const [formData, setFormData] = useState({
     email: "",
     firstName: "",
@@ -99,14 +101,74 @@ export function UsuariosPagina() {
 
   const totalPaginas = Math.ceil(total / limit);
 
+  const handleCsvImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    const lines = text.trim().split("\n").slice(1).filter(l => l.trim());
+    if (lines.length === 0) { toast.error("El archivo CSV está vacío o no tiene filas de datos"); return; }
+    setImporting(true);
+    setImportResults(null);
+    const results: {email: string; success: boolean; error?: string}[] = [];
+    for (const line of lines) {
+      const [email, firstName, lastName, password, role, area] = line.split(",").map(s => s.trim().replace(/^"|"$/g, ""));
+      if (!email) continue;
+      try {
+        await apiService.createUser({ email, firstName: firstName || "", lastName: lastName || "", password: password || "Centenario2024!", role: role || "READER", area: area || "" });
+        results.push({ email, success: true });
+      } catch (err: any) {
+        results.push({ email, success: false, error: err.response?.data?.error || "Error" });
+      }
+    }
+    setImportResults(results);
+    setImporting(false);
+    fetchUsuarios();
+    const ok = results.filter(r => r.success).length;
+    toast.success(`Importación completa: ${ok}/${results.length} usuarios creados`);
+    // reset input
+    e.target.value = "";
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-3xl font-bold text-gray-900">Usuarios</h1>
-        <Button onClick={() => setShowCreateForm(!showCreateForm)}>
-          {showCreateForm ? "Cancelar" : "Crear Usuario"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <label className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium border rounded-lg cursor-pointer transition-colors ${
+            importing ? "opacity-50 cursor-not-allowed border-gray-200 text-gray-400" : "border-gray-200 text-gray-700 hover:bg-gray-50"
+          }`}>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+            {importing ? "Importando..." : "Importar CSV"}
+            <input type="file" accept=".csv" onChange={handleCsvImport} disabled={importing} className="hidden" />
+          </label>
+          <Button onClick={() => setShowCreateForm(!showCreateForm)}>
+            {showCreateForm ? "Cancelar" : "Crear Usuario"}
+          </Button>
+        </div>
       </div>
+
+      {/* CSV import results */}
+      {importResults && (
+        <div className="bg-white rounded-lg shadow p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-gray-800 text-sm">Resultado de Importación CSV</h3>
+            <button onClick={() => setImportResults(null)} className="text-xs text-gray-400 hover:text-gray-600">× Cerrar</button>
+          </div>
+          <div className="max-h-48 overflow-y-auto divide-y divide-gray-100">
+            {importResults.map((r, i) => (
+              <div key={i} className={`flex items-center justify-between py-1.5 text-xs ${
+                r.success ? "text-emerald-700" : "text-red-600"
+              }`}>
+                <span>{r.email}</span>
+                <span>{r.success ? "✓ Creado" : `✗ ${r.error}`}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-gray-500">
+            Formato CSV esperado: <code className="bg-gray-100 px-1 rounded">email,nombre,apellido,contraseña,rol,área</code> (sin encabezado)
+          </p>
+        </div>
+      )}
 
       {/* Crear Usuario Form */}
       {showCreateForm && (

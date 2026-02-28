@@ -17,6 +17,9 @@ import {
   getDocumentReadConfirmations,
   getMyTasks,
   addDocumentComment,
+  archiveDocument,
+  deleteDocument,
+  bulkUpdateDocuments,
 } from "../services/document.js";
 import { CreateDocumentSchema, UpdateDocumentSchema } from "@dms/shared";
 
@@ -339,5 +342,51 @@ export const addCommentHandler = asyncHandler(
     }
     const comment = await addDocumentComment(documentId, req.user.userId, content.trim());
     res.status(201).json({ success: true, data: comment });
+  }
+);
+
+// ── Mejora 15: Archive & Delete ──────────────────────────────────────────────
+
+export const archiveDocumentHandler = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) return res.status(401).json({ success: false, error: "Not authenticated" });
+    if (!PRIVILEGED_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ success: false, error: "Solo administradores pueden archivar documentos" });
+    }
+    const { documentId } = req.params;
+    const doc = await archiveDocument(documentId, req.user.userId);
+    res.json({ success: true, data: doc });
+  }
+);
+
+export const deleteDocumentHandler = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) return res.status(401).json({ success: false, error: "Not authenticated" });
+    if (!PRIVILEGED_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ success: false, error: "Solo administradores pueden eliminar documentos" });
+    }
+    const { documentId } = req.params;
+    await deleteDocument(documentId, req.user.userId);
+    res.json({ success: true, message: "Documento eliminado" });
+  }
+);
+
+// ── Mejora 8: Bulk operations ────────────────────────────────────────────────
+
+export const bulkDocumentsHandler = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) return res.status(401).json({ success: false, error: "Not authenticated" });
+    if (!PRIVILEGED_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ success: false, error: "Sin permiso para operaciones masivas" });
+    }
+    const { documentIds, action } = req.body;
+    if (!Array.isArray(documentIds) || documentIds.length === 0) {
+      return res.status(400).json({ success: false, error: "documentIds requerido" });
+    }
+    if (![ "OBSOLETE" ].includes(action)) {
+      return res.status(400).json({ success: false, error: "Acción no válida" });
+    }
+    const results = await bulkUpdateDocuments(documentIds, action, req.user.userId);
+    res.json({ success: true, data: results });
   }
 );

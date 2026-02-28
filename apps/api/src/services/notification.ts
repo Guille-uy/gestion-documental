@@ -8,7 +8,8 @@ export async function getNotifications(
   page: number = 1,
   limit: number = 20,
   unreadOnly: boolean = false,
-  archivedOnly: boolean = false
+  archivedOnly: boolean = false,
+  type?: string
 ) {
   const skip = (page - 1) * limit;
 
@@ -20,6 +21,7 @@ export async function getNotifications(
     where.archivedAt = null;
     if (unreadOnly) where.readAt = null;
   }
+  if (type) where.type = type;
 
   const [notifications, total] = await Promise.all([
     prisma.notification.findMany({

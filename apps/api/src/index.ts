@@ -3,6 +3,7 @@ import express, { Request, Response, NextFunction } from "express";
 import { config } from "./config.js";
 import { logger } from "./utils/logger.js";
 import { errorHandler } from "./middleware/error.js";
+import { startCronJobs } from "./services/cron.js";
 
 // Routes
 import authRouter from "./routes/auth.js";
@@ -74,4 +75,6 @@ app.listen(PORT, () => {
   logger.info(`API server running on http://localhost:${PORT}`);
   logger.info(`Environment: ${config.NODE_ENV}`);
   logger.info(`API URL: ${config.API_URL}`);
+  // Start cron jobs
+  startCronJobs();
 });
