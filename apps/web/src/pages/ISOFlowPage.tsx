@@ -14,32 +14,83 @@ function StepCard({
 }: {
   num: number; icon: string; label: string; who: string; description: string; color: StepColor;
 }) {
+  const [hovered, setHovered] = React.useState(false);
   return (
-    <div className="flex flex-col items-center" style={{ minWidth: 148 }}>
+    <div className="flex flex-col items-center" style={{ minWidth: 144 }}>
+      {/* Step number badge */}
       <div
-        className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white mb-2 shadow"
+        className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white mb-2 shadow z-10"
         style={{ backgroundColor: color.border }}
       >
         {num}
       </div>
+
+      {/* Dark card — reference style adapted per color */}
       <div
-        className="flex flex-col items-center text-center px-4 py-5 rounded-2xl border-2 shadow-md w-full transition-all hover:scale-105"
-        style={{ borderColor: color.border, boxShadow: `0 4px 20px ${color.glow}` }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        className="flex flex-col gap-3 w-36 rounded-2xl p-4 border-2 transition-all duration-300 ease-in-out cursor-default"
+        style={{
+          background: hovered
+            ? `linear-gradient(to bottom, ${color.bg}28, #0f172a)`
+            : "linear-gradient(to bottom, #1f2937, #111827)",
+          borderColor: hovered ? color.bg : "transparent",
+          transform: hovered ? "translateY(-0.5rem)" : "translateY(0)",
+          boxShadow: hovered
+            ? `0 12px 30px ${color.bg}35, 0 2px 8px rgba(0,0,0,0.6)`
+            : "0 4px 16px rgba(0,0,0,0.5)",
+        }}
       >
-        <div
-          className="w-14 h-14 rounded-full flex items-center justify-center text-2xl mb-3 shadow-inner"
-          style={{ background: `radial-gradient(circle at 35% 35%, ${color.bg}dd, ${color.border})` }}
-        >
-          {icon}
+        {/* Icon area */}
+        <div className="relative">
+          <div
+            className="w-12 h-12 mx-auto rounded-xl flex items-center justify-center text-2xl border-2 transition-all duration-300"
+            style={{
+              backgroundColor: hovered ? `${color.bg}30` : `${color.bg}15`,
+              borderColor: hovered ? `${color.bg}90` : `${color.bg}40`,
+            }}
+          >
+            {icon}
+          </div>
+          {/* Status dot */}
+          <div
+            className="absolute top-0 right-4 w-2.5 h-2.5 rounded-full transition-all duration-300"
+            style={{ backgroundColor: hovered ? color.bg : "#374151" }}
+          />
         </div>
-        <span className="text-xs font-extrabold text-gray-800 uppercase tracking-widest mb-1">{label}</span>
-        <span
-          className="text-xs font-semibold px-2.5 py-0.5 rounded-full mb-2"
-          style={{ backgroundColor: `${color.bg}18`, color: color.bg, border: `1px solid ${color.bg}44` }}
+
+        {/* Label + who */}
+        <div className="text-center">
+          <p
+            className="font-bold text-xs uppercase tracking-widest transition-colors duration-300"
+            style={{ color: hovered ? color.bg : "#9CA3AF" }}
+          >
+            {label}
+          </p>
+          <p
+            className="text-xs mt-1 transition-all duration-300"
+            style={{ color: color.bg, opacity: hovered ? 1 : 0.55 }}
+          >
+            {who}
+          </p>
+        </div>
+
+        {/* Description */}
+        <p
+          className="text-xs text-center leading-tight transition-opacity duration-300"
+          style={{ color: "#9CA3AF", opacity: hovered ? 0.9 : 0.55 }}
         >
-          {who}
-        </span>
-        <span className="text-xs text-gray-500 leading-tight">{description}</span>
+          {description}
+        </p>
+
+        {/* Bottom accent line — expands on hover */}
+        <div
+          className="h-0.5 rounded-full mx-auto transition-all duration-300"
+          style={{
+            backgroundColor: color.bg,
+            width: hovered ? "100%" : "0%",
+          }}
+        />
       </div>
     </div>
   );
