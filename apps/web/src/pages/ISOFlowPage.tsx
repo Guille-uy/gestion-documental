@@ -212,7 +212,7 @@ const CLAUSES = [
 
 export function ISOFlowPage() {
   return (
-    <div className="space-y-8 max-w-5xl mx-auto">
+    <div className="space-y-8">
       {/* Keyframe for animated flow — single animation, direction determined by path drawing order */}
       <style>{`
         @keyframes isoFlowFwd {
@@ -253,9 +253,9 @@ export function ISOFlowPage() {
           Ciclo completo de vida de un documento — cada nueva versión reinicia el proceso desde el paso 1
         </p>
 
-        <div className="overflow-x-auto pb-4">
+        <div className="flex flex-col items-center">
           {/* Horizontal flow — items-center so arrows align with card midpoints */}
-          <div className="flex items-center justify-center gap-0 min-w-max mx-auto pt-6">
+          <div className="flex items-center justify-center gap-0 flex-wrap pt-6">
             <StepCard num={1} icon="✏️" label="Borrador" who="Propietario"
               description="Se redacta el documento y se carga el archivo."
               color={STATE_COLORS.DRAFT}
@@ -286,7 +286,7 @@ export function ISOFlowPage() {
           </div>
 
           {/* Return arcs */}
-          <div className="min-w-max mx-auto mt-10 space-y-3">
+          <div className="w-full max-w-4xl mx-auto mt-10 space-y-3">
             {/* Short arc: EN REVISIÓN → BORRADOR */}
             <BackArc
               color="#FCA5A5"
