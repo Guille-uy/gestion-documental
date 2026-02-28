@@ -99,13 +99,56 @@ function ForwardArrow({ label, sublabel, color }: { label: string; sublabel?: st
       <svg width="52" height="18" viewBox="0 0 52 18" fill="none">
         <defs>
           <linearGradient id={id} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor={color} stopOpacity="0.4" />
+            <stop offset="0%" stopColor={color} stopOpacity="0.3" />
             <stop offset="100%" stopColor={color} />
           </linearGradient>
         </defs>
-        <line x1="0" y1="9" x2="44" y2="9" stroke={`url(#${id})`} strokeWidth="2.5" />
+        {/* Animated dashed line — dashes flow left→right */}
+        <line
+          x1="0" y1="9" x2="44" y2="9"
+          stroke={`url(#${id})`} strokeWidth="2.5"
+          strokeDasharray="7 4"
+          style={{ animation: "isoFlowFwd 0.5s linear infinite" }}
+        />
         <polygon points="38,5 52,9 38,13" fill={color} />
       </svg>
+    </div>
+  );
+}
+
+/**
+ * BackArc — animated 3-sided SVG border (no top edge).
+ * Path is drawn: top-right → bottom-right → bottom-left → top-left
+ * so isoFlowFwd makes dashes travel right→left on the bottom segment.
+ */
+function BackArc({
+  color, maxWidth, children,
+}: {
+  color: string; maxWidth?: number | string; children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="relative flex items-center justify-center py-2 px-4 gap-2"
+      style={{ maxWidth, minHeight: 36 }}
+    >
+      {/* SVG overlay stretches to container with non-scaling stroke */}
+      <svg
+        className="absolute inset-0 w-full h-full pointer-events-none"
+        preserveAspectRatio="none"
+        viewBox="0 0 1 1"
+        style={{ overflow: "visible" }}
+      >
+        <path
+          d="M 1,0 L 1,1 L 0,1 L 0,0"
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          vectorEffect="non-scaling-stroke"
+          strokeDasharray="10 6"
+          style={{ animation: "isoFlowFwd 0.9s linear infinite" }}
+        />
+      </svg>
+      {children}
     </div>
   );
 }
@@ -152,6 +195,13 @@ const CLAUSES = [
 export function ISOFlowPage() {
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
+      {/* Keyframe for animated flow — single animation, direction determined by path drawing order */}
+      <style>{`
+        @keyframes isoFlowFwd {
+          from { stroke-dashoffset: 16; }
+          to   { stroke-dashoffset: 0;  }
+        }
+      `}</style>
 
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-700 to-blue-900 rounded-xl p-8 text-white shadow-lg">
@@ -217,33 +267,24 @@ export function ISOFlowPage() {
             />
           </div>
 
-          {/* Back-arc labels */}
+          {/* Back-arc labels — animated dashes flow right→left (return direction) */}
           <div className="min-w-max mx-auto mt-8 space-y-2">
-            {/* Cambios requested → back to DRAFT */}
-            <div
-              className="border-2 border-dashed rounded-b-xl flex items-center justify-center py-2 px-4 gap-2"
-              style={{ borderColor: "#FCA5A5", borderTop: "none", maxWidth: "calc(148px + 68px + 148px + 40px)" }}
-            >
-              <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+            <BackArc color="#FCA5A5" maxWidth="calc(144px + 68px + 144px + 48px)">
+              <svg width="16" height="12" viewBox="0 0 16 12" fill="none" className="shrink-0">
                 <polygon points="10,1 0,6 10,11" fill="#F87171" />
               </svg>
               <span className="text-xs text-red-400 italic font-medium">
                 Si el revisor <strong className="not-italic font-bold">solicita cambios</strong>, el documento regresa a Borrador para correcciones
               </span>
-            </div>
-
-            {/* New version loop */}
-            <div
-              className="border-2 border-dashed rounded-b-xl flex items-center justify-center py-2 px-4 gap-2"
-              style={{ borderColor: "#6EE7B7", borderTop: "none" }}
-            >
-              <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+            </BackArc>
+            <BackArc color="#6EE7B7">
+              <svg width="16" height="12" viewBox="0 0 16 12" fill="none" className="shrink-0">
                 <polygon points="10,1 0,6 10,11" fill="#059669" />
               </svg>
               <span className="text-xs text-emerald-600 italic font-medium">
                 Al crear una <strong className="not-italic font-bold">nueva versión</strong>, el doc publicado pasa a Obsoleto y se inicia un nuevo Borrador → ciclo completo
               </span>
-            </div>
+            </BackArc>
           </div>
         </div>
       </div>
