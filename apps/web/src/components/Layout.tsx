@@ -199,9 +199,14 @@ export function Layout({ children }: LayoutProps) {
                       <span className="w-8 h-8 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
                         {initials}
                       </span>
-                      <span className="hidden lg:block max-w-[120px] truncate">
-                        {user.firstName} {user.lastName}
-                      </span>
+                      <div className="hidden md:flex flex-col items-start leading-tight">
+                        <span className="max-w-[130px] truncate text-sm font-semibold text-gray-800">
+                          {user.firstName} {user.lastName}
+                        </span>
+                        <span className="text-[10px] font-medium text-blue-600">
+                          {ROLE_LABELS[user.role] ?? user.role}
+                        </span>
+                      </div>
                       <svg
                         className={`w-4 h-4 text-gray-400 transition-transform ${showDropdown ? "rotate-180" : ""}`}
                         fill="none" stroke="currentColor" viewBox="0 0 24 24"
