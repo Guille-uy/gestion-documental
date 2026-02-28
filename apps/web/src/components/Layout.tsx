@@ -82,93 +82,113 @@ export function Layout({ children }: LayoutProps) {
             </Link>
 
             {user && (
-              <div className="flex items-center gap-6">
-                <Link
-                  to="/dashboard"
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    isActive("/dashboard") || isActive("/")
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-600 hover:bg-gray-100"
-                  }`}
-                >
-                  Dashboard
-                </Link>
+              <div className="flex items-center gap-4">
 
-                <Link
-                  to="/flujo-iso"
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    isActive("/flujo-iso")
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-600 hover:bg-gray-100"
-                  }`}
+                {/* ── Icon pill nav ── */}
+                <div
+                  className="nav-pill flex items-center gap-0.5 px-2 py-1.5 rounded-2xl"
+                  style={{
+                    background: "linear-gradient(135deg, #1d4ed8 0%, #2563eb 60%, #3b82f6 100%)",
+                    boxShadow: "0 4px 14px rgba(37,99,235,0.45), 0 2px 6px rgba(0,0,0,0.15)",
+                    transition: "all 0.35s ease",
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 6px 22px rgba(37,99,235,0.6), 0 3px 10px rgba(0,0,0,0.2)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 14px rgba(37,99,235,0.45), 0 2px 6px rgba(0,0,0,0.15)"; }}
                 >
-                  Flujo ISO
-                </Link>
+                  {/* ── stylesheet for tooltip animation ── */}
+                  <style>{`
+                    .nav-icon-btn { position:relative; display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; border:none; background:transparent; color:#fff; cursor:pointer; transition:all 0.25s ease; flex-shrink:0; }
+                    .nav-icon-btn:hover { transform:translateY(-3px); }
+                    .nav-icon-btn.active { background:rgba(255,255,255,0.22); box-shadow:0 0 0 1.5px rgba(255,255,255,0.4) inset; }
+                    .nav-tooltip { position:absolute; bottom:calc(100% + 10px); left:50%; transform:translateX(-50%) scale(0.6); opacity:0; background:#0f172a; color:#fff; font-size:11px; font-weight:600; white-space:nowrap; padding:4px 9px; border-radius:7px; pointer-events:none; transition:opacity 0.22s ease, transform 0.22s ease; letter-spacing:0.02em; }
+                    .nav-tooltip::after { content:""; position:absolute; top:100%; left:50%; transform:translateX(-50%); border:5px solid transparent; border-top-color:#0f172a; }
+                    .nav-icon-btn:hover .nav-tooltip { opacity:1; transform:translateX(-50%) scale(1); }
+                  `}</style>
 
-                <Link
-                  to="/documents"
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    isActive("/documents")
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-600 hover:bg-gray-100"
-                  }`}
-                >
-                  Documentos
-                </Link>
+                  {/* Dashboard */}
+                  <Link to="/dashboard" className={`nav-icon-btn ${isActive("/dashboard") || isActive("/") ? "active" : ""}`}>
+                    <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                    </svg>
+                    <span className="nav-tooltip">Dashboard</span>
+                  </Link>
 
-                <Link
-                  to="/notifications"
-                  className={`relative px-3 py-2 rounded-md text-sm font-medium ${
-                    isActive("/notifications")
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-600 hover:bg-gray-100"
-                  }`}
-                >
-                  Notificaciones
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {unreadCount}
-                    </span>
+                  {/* Flujo ISO */}
+                  <Link to="/flujo-iso" className={`nav-icon-btn ${isActive("/flujo-iso") ? "active" : ""}`}>
+                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <polyline points="17 1 21 5 17 9"/>
+                      <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                      <polyline points="7 23 3 19 7 15"/>
+                      <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                    </svg>
+                    <span className="nav-tooltip">Flujo ISO</span>
+                  </Link>
+
+                  {/* Documentos */}
+                  <Link to="/documents" className={`nav-icon-btn ${isActive("/documents") ? "active" : ""}`}>
+                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                      <line x1="16" y1="13" x2="8" y2="13"/>
+                      <line x1="16" y1="17" x2="8" y2="17"/>
+                      <line x1="10" y1="9" x2="8" y2="9"/>
+                    </svg>
+                    <span className="nav-tooltip">Documentos</span>
+                  </Link>
+
+                  {/* Notificaciones */}
+                  <Link to="/notifications" className={`nav-icon-btn ${isActive("/notifications") ? "active" : ""}`} style={{ position: "relative" }}>
+                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    {unreadCount > 0 && (
+                      <span style={{ position:"absolute", top:"3px", right:"3px", minWidth:"16px", height:"16px", fontSize:"9px", fontWeight:700, background:"#ef4444", color:"#fff", borderRadius:"9999px", display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px", border:"1.5px solid #2563eb", lineHeight:1 }}>
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    )}
+                    <span className="nav-tooltip">Notificaciones</span>
+                  </Link>
+
+                  {/* Admin-only items */}
+                  {(user.role === "ADMIN" || user.role === "QUALITY_MANAGER") && (
+                    <>
+                      {/* separator */}
+                      <span style={{ width:"1px", height:"22px", background:"rgba(255,255,255,0.25)", borderRadius:"2px", margin:"0 3px" }} />
+
+                      {/* Usuarios */}
+                      <Link to="/users" className={`nav-icon-btn ${isActive("/users") ? "active" : ""}`}>
+                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                          <circle cx="9" cy="7" r="4"/>
+                          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                        <span className="nav-tooltip">Usuarios</span>
+                      </Link>
+
+                      {/* Auditoría */}
+                      <Link to="/audit" className={`nav-icon-btn ${isActive("/audit") ? "active" : ""}`}>
+                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                          <polyline points="9 12 11 14 15 10"/>
+                        </svg>
+                        <span className="nav-tooltip">Auditoría</span>
+                      </Link>
+
+                      {/* Configuración */}
+                      <Link to="/config" className={`nav-icon-btn ${isActive("/config") ? "active" : ""}`}>
+                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="3"/>
+                          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                        <span className="nav-tooltip">Configuración</span>
+                      </Link>
+                    </>
                   )}
-                </Link>
+                </div>
 
-                {(user.role === "ADMIN" || user.role === "QUALITY_MANAGER") && (
-                  <>
-                    <Link
-                      to="/users"
-                      className={`px-3 py-2 rounded-md text-sm font-medium ${
-                        isActive("/users")
-                          ? "bg-blue-100 text-blue-700"
-                          : "text-gray-600 hover:bg-gray-100"
-                      }`}
-                    >
-                      Usuarios
-                    </Link>
-
-                    <Link
-                      to="/audit"
-                      className={`px-3 py-2 rounded-md text-sm font-medium ${
-                        isActive("/audit")
-                          ? "bg-blue-100 text-blue-700"
-                          : "text-gray-600 hover:bg-gray-100"
-                      }`}
-                    >
-                      Auditoría
-                    </Link>
-
-                    <Link
-                      to="/config"
-                      className={`px-3 py-2 rounded-md text-sm font-medium ${
-                        isActive("/config")
-                          ? "bg-blue-100 text-blue-700"
-                          : "text-gray-600 hover:bg-gray-100"
-                      }`}
-                    >
-                      Configuración
-                    </Link>
-                  </>
-                )}
-
+                {/* ── User profile dropdown ── */}
                 <div className="relative" ref={dropdownRef}>
                   {/* Trigger button */}
                   <button
