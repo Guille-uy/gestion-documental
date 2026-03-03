@@ -1,5 +1,5 @@
 import { Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import prisma from "../lib/prisma.js";
 import { asyncHandler } from "../middleware/error.js";
 import { AuthenticatedRequest } from "../middleware/auth.js";
 import {
@@ -22,8 +22,6 @@ import {
   bulkUpdateDocuments,
 } from "../services/document.js";
 import { CreateDocumentSchema, UpdateDocumentSchema } from "@dms/shared";
-
-const prisma = new PrismaClient();
 
 // Roles that can access documents across all areas
 const PRIVILEGED_ROLES = ["ADMIN", "QUALITY_MANAGER"];

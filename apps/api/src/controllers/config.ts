@@ -1,10 +1,8 @@
 ﻿import { Response } from "express";
 import { asyncHandler } from "../middleware/error.js";
 import { AuthenticatedRequest } from "../middleware/auth.js";
-import { PrismaClient } from "@prisma/client";
+import prisma from "../lib/prisma.js";
 import { z } from "zod";
-
-const prisma = new PrismaClient();
 
 const CreateAreaSchema = z.object({
   name: z.string().min(1),

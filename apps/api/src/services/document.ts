@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import prisma from "../lib/prisma.js";
 import { NotFoundError, ValidationError, AppError } from "../utils/errors.js";
 import { logger } from "../utils/logger.js";
 import {
@@ -6,8 +6,6 @@ import {
   emailChangesRequested,
   emailDocumentPublished,
 } from "./email.js";
-
-const prisma = new PrismaClient();
 
 async function generateDocumentCode(type: string): Promise<string> {
   // Try to get prefix from DocumentTypeConfig table first

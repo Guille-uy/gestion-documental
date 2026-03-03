@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import prisma from "../lib/prisma.js";
 import bcrypt from "bcrypt";
 import {
   generateAccessToken,
@@ -7,8 +7,6 @@ import {
 } from "../utils/jwt.js";
 import { ValidationError, AuthenticationError } from "../utils/errors.js";
 import { logger } from "../utils/logger.js";
-
-const prisma = new PrismaClient();
 
 export async function loginUser(email: string, password: string) {
   const user = await prisma.user.findUnique({

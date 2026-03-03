@@ -1,8 +1,6 @@
 import cron from "node-cron";
-import { PrismaClient } from "@prisma/client";
+import prisma from "../lib/prisma.js";
 import { logger } from "../utils/logger.js";
-
-const prisma = new PrismaClient();
 
 export function startCronJobs() {
   // Daily at 8am UTC — review reminders
