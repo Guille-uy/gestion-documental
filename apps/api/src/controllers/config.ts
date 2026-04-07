@@ -21,6 +21,9 @@ const CreateTypeSchema = z.object({
   code: z.string().min(1).max(20),
   prefix: z.string().min(1).max(10),
   description: z.string().optional(),
+  requiresElaborado: z.boolean().optional(),
+  requiresRevisado: z.boolean().optional(),
+  requiresAprobado: z.boolean().optional(),
 });
 
 const UpdateTypeSchema = z.object({
@@ -28,6 +31,9 @@ const UpdateTypeSchema = z.object({
   prefix: z.string().min(1).max(10).optional(),
   description: z.string().optional(),
   isActive: z.boolean().optional(),
+  requiresElaborado: z.boolean().optional(),
+  requiresRevisado: z.boolean().optional(),
+  requiresAprobado: z.boolean().optional(),
 });
 
 // ---- AREAS ----
@@ -83,7 +89,17 @@ export const createDocumentTypeHandler = asyncHandler(async (req: AuthenticatedR
   if (!parsed.success) return res.status(400).json({ success: false, error: "Datos inválidos", details: parsed.error.errors });
   const existing = await prisma.documentTypeConfig.findUnique({ where: { code: parsed.data.code } });
   if (existing) return res.status(409).json({ success: false, error: "Ya existe un tipo con ese código" });
-  const type = await prisma.documentTypeConfig.create({ data: { ...parsed.data, code: parsed.data.code.toUpperCase(), prefix: parsed.data.prefix.toUpperCase() } });
+  const { requiresElaborado = true, requiresRevisado = true, requiresAprobado = true, ...rest } = parsed.data;
+  const type = await prisma.documentTypeConfig.create({
+    data: {
+      ...rest,
+      code: rest.code.toUpperCase(),
+      prefix: rest.prefix.toUpperCase(),
+      requiresElaborado,
+      requiresRevisado,
+      requiresAprobado,
+    },
+  });
   res.status(201).json({ success: true, data: type });
 });
 

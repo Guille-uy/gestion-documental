@@ -199,10 +199,10 @@ export function DocumentDetailPage() {
   const handleCreateNewVersion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!documentId) return;
-    if (!window.confirm(`¿Crear una nueva versión de "${doc?.title}"?\n\nEl documento volverá al estado BORRADOR para iniciar un nuevo ciclo de revisión y aprobación. La versión publicada actual quedará como OBSOLETA.`)) return;
+    if (!window.confirm(`¿Crear una nueva versión de "${doc?.title}"?\n\nEl documento volverá al estado "En elaboración" para iniciar un nuevo ciclo de revisión y aprobación. La versión vigente actual quedará como OBSOLETA.`)) return;
     try {
       await apiService.createNewVersion(documentId, { changes: newVersionChanges });
-      toast.success("Nueva versión creada. El documento vuelve a estado Borrador.");
+      toast.success("Nueva versión creada. El documento vuelve a estado En elaboración.");
       setNewVersionChanges("");
       setShowNewVersionForm(false);
       fetchDocument();
@@ -653,7 +653,7 @@ function InfoItem({ label, value }: { label: string; value: string | number }) {
 }
 
 function EstadoBadge({ status }: { status: string }) {
-  const labels: Record<string, string> = { DRAFT: "Borrador", IN_REVIEW: "En Revisión", APPROVED: "Aprobado", PUBLISHED: "Publicado", OBSOLETE: "Obsoleto" };
+  const labels: Record<string, string> = { DRAFT: "En elaboración", IN_REVIEW: "En revisión", APPROVED: "Aprobado", PUBLISHED: "Vigente", OBSOLETE: "Obsoleto" };
   const colors: Record<string, string> = { DRAFT: "bg-gray-100 text-gray-900", IN_REVIEW: "bg-yellow-100 text-yellow-900", APPROVED: "bg-blue-100 text-blue-900", PUBLISHED: "bg-green-100 text-green-900", OBSOLETE: "bg-red-100 text-red-900" };
   return (
     <span className={`px-4 py-2 rounded-full text-sm font-medium ${colors[status] || colors.DRAFT}`}>

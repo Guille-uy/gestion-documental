@@ -137,6 +137,8 @@ export const CreateDocumentSchema = z.object({
   description: z.string().optional(),
   type: z.string().min(1),
   area: z.string().min(1),
+  siteCode: z.string().optional(),
+  sectorCode: z.string().optional(),
 });
 export type CreateDocument = z.infer<typeof CreateDocumentSchema>;
 
@@ -159,6 +161,9 @@ export const CreateDocumentTypeConfigSchema = z.object({
   code: z.string().min(1).max(20),
   prefix: z.string().min(1).max(10),
   description: z.string().optional(),
+  requiresElaborado: z.boolean().optional(),
+  requiresRevisado: z.boolean().optional(),
+  requiresAprobado: z.boolean().optional(),
 });
 export type CreateDocumentTypeConfig = z.infer<typeof CreateDocumentTypeConfigSchema>;
 
@@ -167,6 +172,9 @@ export const UpdateDocumentTypeConfigSchema = z.object({
   prefix: z.string().min(1).max(10).optional(),
   description: z.string().optional(),
   isActive: z.boolean().optional(),
+  requiresElaborado: z.boolean().optional(),
+  requiresRevisado: z.boolean().optional(),
+  requiresAprobado: z.boolean().optional(),
 });
 export type UpdateDocumentTypeConfig = z.infer<typeof UpdateDocumentTypeConfigSchema>;
 

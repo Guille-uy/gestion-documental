@@ -19,7 +19,7 @@ export function ConfigPage() {
   const [editingArea, setEditingArea] = useState<any>(null);
   const [editingTipo, setEditingTipo] = useState<any>(null);
   const [areaForm, setAreaForm] = useState({ name: "", code: "", description: "" });
-  const [tipoForm, setTipoForm] = useState({ name: "", code: "", prefix: "", description: "" });
+  const [tipoForm, setTipoForm] = useState({ name: "", code: "", prefix: "", description: "", requiresElaborado: true, requiresRevisado: true, requiresAprobado: true });
 
   useEffect(() => { fetchAreas(); fetchTipos(); }, []);
 
@@ -64,7 +64,7 @@ export function ConfigPage() {
     e.preventDefault();
     try {
       if (editingTipo) {
-        await apiService.updateDocumentType(editingTipo.id, { name: tipoForm.name, prefix: tipoForm.prefix, description: tipoForm.description });
+        await apiService.updateDocumentType(editingTipo.id, { name: tipoForm.name, prefix: tipoForm.prefix, description: tipoForm.description, requiresElaborado: tipoForm.requiresElaborado, requiresRevisado: tipoForm.requiresRevisado, requiresAprobado: tipoForm.requiresAprobado });
         toast.success("Tipo actualizado");
       } else {
         await apiService.createDocumentType(tipoForm);
@@ -72,7 +72,7 @@ export function ConfigPage() {
       }
       setShowTipoForm(false);
       setEditingTipo(null);
-      setTipoForm({ name: "", code: "", prefix: "", description: "" });
+      setTipoForm({ name: "", code: "", prefix: "", description: "", requiresElaborado: true, requiresRevisado: true, requiresAprobado: true });
       fetchTipos();
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Error al guardar tipo");
@@ -103,7 +103,7 @@ export function ConfigPage() {
 
   const startEditTipo = (tipo: any) => {
     setEditingTipo(tipo);
-    setTipoForm({ name: tipo.name, code: tipo.code, prefix: tipo.prefix, description: tipo.description || "" });
+    setTipoForm({ name: tipo.name, code: tipo.code, prefix: tipo.prefix, description: tipo.description || "", requiresElaborado: tipo.requiresElaborado !== false, requiresRevisado: tipo.requiresRevisado !== false, requiresAprobado: tipo.requiresAprobado !== false });
     setShowTipoForm(true);
   };
 
@@ -259,7 +259,7 @@ export function ConfigPage() {
           <div className="flex flex-wrap justify-between items-center gap-2">
             <p className="text-gray-500 text-sm">Los tipos determinan la nomenclatura del código (prefijo) y categorizan los documentos.</p>
             {canEdit && (
-              <Button size="sm" onClick={() => { setEditingTipo(null); setTipoForm({ name: "", code: "", prefix: "", description: "" }); setShowTipoForm(!showTipoForm); }}>
+              <Button size="sm" onClick={() => { setEditingTipo(null); setTipoForm({ name: "", code: "", prefix: "", description: "", requiresElaborado: true, requiresRevisado: true, requiresAprobado: true }); setShowTipoForm(!showTipoForm); }}>
                 {showTipoForm && !editingTipo ? "Cancelar" : "+ Nuevo Tipo"}
               </Button>
             )}
@@ -272,11 +272,23 @@ export function ConfigPage() {
                 <Input label="Código interno *" value={tipoForm.code} onChange={e => setTipoForm(f => ({ ...f, code: e.target.value.toUpperCase() }))} required placeholder="ej: SOP" disabled={!!editingTipo} />
                 <Input label="Prefijo para código *" value={tipoForm.prefix} onChange={e => setTipoForm(f => ({ ...f, prefix: e.target.value.toUpperCase() }))} required placeholder="ej: PO" />
                 <div className="flex items-end pb-1">
-                  <p className="text-sm text-gray-500">Genera: <span className="font-mono font-semibold text-blue-700">{tipoForm.prefix || "PO"}-{new Date().getFullYear()}-0001</span></p>
+                  <p className="text-sm text-gray-500">Genera: <span className="font-mono font-semibold text-blue-700">{tipoForm.prefix || "PO"}-SECTOR-SITIO-001</span></p>
                 </div>
               </div>
               <Input label="Nombre descriptivo *" value={tipoForm.name} onChange={e => setTipoForm(f => ({ ...f, name: e.target.value }))} required placeholder="ej: Procedimiento Operativo" />
               <Input label="Descripción" value={tipoForm.description} onChange={e => setTipoForm(f => ({ ...f, description: e.target.value }))} placeholder="Descripción del tipo (opcional)" />
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-2">Workflow requerido</p>
+                <div className="flex flex-wrap gap-4">
+                  {(["requiresElaborado", "requiresRevisado", "requiresAprobado"] as const).map(field => (
+                    <label key={field} className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" className="w-4 h-4 rounded accent-blue-600" checked={tipoForm[field]}
+                        onChange={e => setTipoForm(f => ({ ...f, [field]: e.target.checked }))} />
+                      <span className="text-sm text-gray-700">{field === "requiresElaborado" ? "① Elaborado" : field === "requiresRevisado" ? "② Revisado" : "③ Aprobado"}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
               <div className="flex gap-2">
                 <Button type="submit" size="sm">{editingTipo ? "Actualizar" : "Crear Tipo"}</Button>
                 <button type="button" onClick={() => { setShowTipoForm(false); setEditingTipo(null); }} className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Cancelar</button>
@@ -314,7 +326,7 @@ export function ConfigPage() {
                         <td className="px-4 py-3.5 font-medium text-gray-900">{tipo.name}</td>
                         <td className="px-4 py-3.5 hidden sm:table-cell">
                           <span className="font-mono text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded border">
-                            {tipo.prefix}-{new Date().getFullYear()}-0001
+                            {tipo.prefix}-SECTOR-SITIO-001
                           </span>
                         </td>
                         <td className="px-4 py-3.5">

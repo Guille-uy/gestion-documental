@@ -15,7 +15,8 @@ export function CreateDocumentPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [areas, setAreas] = useState<any[]>([]);
   const [docTypes, setDocTypes] = useState<any[]>([]);
-  const [formData, setFormData] = useState({ title: "", description: "", type: "", area: "" });
+  const [formData, setFormData] = useState({ title: "", description: "", type: "", area: "", siteCode: "", sectorCode: "" });
+  const [showTypeTooltip, setShowTypeTooltip] = useState(false);
 
   useEffect(() => {
     Promise.all([apiService.getAreas(), apiService.getDocumentTypes()])
@@ -29,14 +30,20 @@ export function CreateDocumentPage() {
         const defaultArea = (user?.area && isRestricted)
           ? user.area
           : (areasList.length > 0 ? areasList[0].name : "");
-        setFormData(f => ({ ...f, area: defaultArea }));
+        const firstArea = areasList.find((a: any) => a.name === defaultArea) || areasList[0];
+        setFormData(f => ({ ...f, area: defaultArea, siteCode: firstArea?.siteCode || "", sectorCode: firstArea?.sectorCode || "" }));
       })
       .catch(() => toast.error("Error al cargar configuración"));
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === "area") {
+      const selectedArea = areas.find((a: any) => a.name === value);
+      setFormData(prev => ({ ...prev, area: value, siteCode: selectedArea?.siteCode || "", sectorCode: selectedArea?.sectorCode || "" }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,13 +69,29 @@ export function CreateDocumentPage() {
       <h1 className="text-3xl font-bold text-gray-900">Crear Documento</h1>
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p className="text-sm text-blue-800">
-          <span className="font-medium">Código automático:</span> El código del documento se generará automáticamente según el tipo seleccionado (ej: <code className="bg-blue-100 px-1 rounded">PO-2026-0001</code> para Procedimientos Operativos).
+          <span className="font-medium">Código automático:</span> Formato <code className="bg-blue-100 px-1 rounded">TIPO-PROCESO-SITIO-NNN</code>. Ejemplo: <code className="bg-blue-100 px-1 rounded">{(() => { const t = docTypes.find((d:any)=>d.code===formData.type); return t?.prefix||"PR"; })()} -{formData.sectorCode||«SECTOR»}-{formData.siteCode||«SITIO»}-001</code>.
         </p>
       </div>
       <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 space-y-6">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Documento *</label>
+            <div className="flex items-center gap-1.5 mb-2">
+              <label className="block text-sm font-medium text-gray-700">Tipo de Documento *</label>
+              {docTypes.find((d:any)=>d.code===formData.type)?.description && (
+                <div className="relative">
+                  <button type="button" onMouseEnter={()=>setShowTypeTooltip(true)} onMouseLeave={()=>setShowTypeTooltip(false)}
+                    className="text-blue-400 hover:text-blue-600 transition-colors" aria-label="Ver descripción">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/></svg>
+                  </button>
+                  {showTypeTooltip && (
+                    <div className="absolute left-0 top-6 z-20 w-72 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl">
+                      {docTypes.find((d:any)=>d.code===formData.type)?.description}
+                      <div className="absolute -top-1.5 left-1.5 w-3 h-3 bg-gray-900 rotate-45" />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             {docTypes.length === 0 ? (
               <p className="text-sm text-gray-500 italic">Cargando tipos...</p>
             ) : (
@@ -93,8 +116,8 @@ export function CreateDocumentPage() {
               <p className="text-sm text-gray-500 italic">Cargando áreas...</p>
             ) : (
               <select name="area" value={formData.area} onChange={handleChange} required className={selectClass}>
-                {areas.map(a => (
-                  <option key={a.id} value={a.name}>{a.name}</option>
+                {areas.map((a: any) => (
+                  <option key={a.id} value={a.name}>{a.name}{a.sector ? ` — ${a.sector}` : a.folder ? ` — ${a.folder}` : ""} · {a.site || ""}</option>
                 ))}
               </select>
             )}

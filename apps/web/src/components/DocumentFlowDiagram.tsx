@@ -43,17 +43,17 @@ interface StepProps {
 const STEPS: StepData[] = [
   {
     status: "DRAFT",
-    title: "Borrador",
+    title: "En elaboración",
     subtitle: "El propietario redacta y carga el archivo del documento",
   },
   {
     status: "IN_REVIEW",
-    title: "En Revisión",
+    title: "En revisión",
     subtitle: "Revisores y aprobadores analizan el contenido",
   },
   {
     status: "PUBLISHED",
-    title: "Publicado",
+    title: "Vigente",
     subtitle: "Documento vigente — visible y notificado a los lectores del área",
   },
   {

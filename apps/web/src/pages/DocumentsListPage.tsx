@@ -8,7 +8,7 @@ import { format } from "date-fns";
 
 const PRIVILEGED_ROLES = ["ADMIN", "QUALITY_MANAGER"];
 
-const STATUS_LABELS: Record<string,string> = { DRAFT:"Borrador", IN_REVIEW:"En Revisión", APPROVED:"Aprobado", PUBLISHED:"Publicado", OBSOLETE:"Obsoleto" };
+const STATUS_LABELS: Record<string,string> = { DRAFT:"En elaboración", IN_REVIEW:"En revisión", APPROVED:"Aprobado", PUBLISHED:"Vigente", OBSOLETE:"Obsoleto" };
 const STATUS_COLORS: Record<string,string> = {
   DRAFT:     "bg-gray-100 text-gray-700 border-gray-200",
   IN_REVIEW: "bg-amber-50 text-amber-700 border-amber-200",
@@ -256,10 +256,10 @@ export function DocumentsListPage() {
           <select name="status" value={filters.status} onChange={handleFilterChange}
             className="py-2 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
             <option value="">Todos los estados</option>
-            <option value="DRAFT">Borrador</option>
-            <option value="IN_REVIEW">En Revisión</option>
+            <option value="DRAFT">En elaboración</option>
+            <option value="IN_REVIEW">En revisión</option>
             <option value="APPROVED">Aprobado</option>
-            <option value="PUBLISHED">Publicado</option>
+            <option value="PUBLISHED">Vigente</option>
             <option value="OBSOLETE">Obsoleto</option>
           </select>
           {/* Area */}

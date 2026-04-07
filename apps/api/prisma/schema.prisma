@@ -65,6 +65,9 @@ model Document {
   publishedAt         DateTime?
   nextReviewDate      DateTime?      // #11 - fecha de revisión periódica ISO
   reviewedBy          String?
+  // Campos para codificación TIPO-SECTOR-SITIO-NUM
+  siteCode            String?        // CO, FE, CD
+  sectorCode          String?        // AC, RH, SYSO, etc.
   createdBy           String
   updatedBy           String
   createdAt           DateTime       @default(now())
@@ -105,6 +108,12 @@ model Area {
   code        String   @unique
   description String?
   isActive    Boolean  @default(true)
+  // Campos de jerarquía organizativa
+  folder      String?  // Carpeta ej: "04 Soporte al negocio"
+  site        String?  // Sitio ej: "Fábrica de elaboración"
+  siteCode    String?  // Código sitio ej: FE, CO, CD
+  sector      String?  // Sector/Proceso ej: "Aseguramiento de calidad"
+  sectorCode  String?  // Código sector ej: AC, RH, SYSO
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -112,14 +121,18 @@ model Area {
 }
 
 model DocumentTypeConfig {
-  id          String   @id @default(cuid())
-  name        String
-  code        String   @unique
-  prefix      String
-  description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                String   @id @default(cuid())
+  name              String
+  code              String   @unique
+  prefix            String
+  description       String?
+  isActive          Boolean  @default(true)
+  // Flujo de aprobación
+  requiresElaborado Boolean  @default(true)
+  requiresRevisado  Boolean  @default(true)
+  requiresAprobado  Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   @@map("document_type_configs")
 }

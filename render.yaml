@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: gestion-documental-api
+    runtime: docker
+    dockerfilePath: apps/api/Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        sync: false          # Set manually in Render dashboard (from Neon)
+      - key: JWT_SECRET
+        sync: false          # Set manually in Render dashboard
+      - key: JWT_REFRESH_SECRET
+        sync: false          # Set manually in Render dashboard
+      - key: FRONTEND_URL
+        value: https://gestion-documental-centenario.surge.sh

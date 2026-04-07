@@ -7,29 +7,29 @@ import {
   emailDocumentPublished,
 } from "./email.js";
 
-async function generateDocumentCode(type: string): Promise<string> {
-  // Try to get prefix from DocumentTypeConfig table first
+// Formato: TIPO-PROCESO-SITIO-NNN  (ej: PR-AC-FE-001)
+async function generateDocumentCode(type: string, siteCode: string, sectorCode: string): Promise<string> {
   const typeConfig = await prisma.documentTypeConfig.findFirst({
     where: { code: type, isActive: true },
   });
-
   const fallbackPrefixes: Record<string, string> = {
     SOP: "PO", POLICY: "POL", WI: "IT", FORM: "FOR", RECORD: "REG",
   };
   const prefix = typeConfig?.prefix || fallbackPrefixes[type] || type.slice(0, 3).toUpperCase();
-  const year = new Date().getFullYear();
+  const site = (siteCode || "CO").toUpperCase();
+  const sector = (sectorCode || "GEN").toUpperCase();
 
-  const count = await prisma.document.count({ where: { type } });
+  const count = await prisma.document.count({ where: { type, siteCode: site, sectorCode: sector } });
   let seq = count + 1;
   let attempts = 0;
   while (attempts < 30) {
-    const code = `${prefix}-${year}-${String(seq).padStart(4, "0")}`;
+    const code = `${prefix}-${sector}-${site}-${String(seq).padStart(3, "0")}`;
     const existing = await prisma.document.findUnique({ where: { code } });
     if (!existing) return code;
     seq++;
     attempts++;
   }
-  return `${prefix}-${year}-${Date.now().toString().slice(-6)}`;
+  return `${prefix}-${sector}-${site}-${Date.now().toString().slice(-4)}`;
 }
 
 export async function createDocument(
@@ -38,10 +38,12 @@ export async function createDocument(
     description?: string;
     type: string;
     area: string;
+    siteCode?: string;
+    sectorCode?: string;
   },
   userId: string
 ) {
-  const code = await generateDocumentCode(data.type);
+  const code = await generateDocumentCode(data.type, data.siteCode || "CO", data.sectorCode || "GEN");
 
   const document = await prisma.document.create({
     data: {
@@ -50,6 +52,8 @@ export async function createDocument(
       description: data.description,
       type: data.type,
       area: data.area,
+      siteCode: data.siteCode || "CO",
+      sectorCode: data.sectorCode || "GEN",
       status: "DRAFT",
       currentVersionLabel: "v1.0",
       createdBy: userId,
