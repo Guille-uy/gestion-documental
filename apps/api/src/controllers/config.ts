@@ -6,14 +6,24 @@ import { z } from "zod";
 
 const CreateAreaSchema = z.object({
   name: z.string().min(1),
-  code: z.string().min(1).max(10),
+  code: z.string().min(1).max(30),
   description: z.string().optional(),
+  folder: z.string().optional(),
+  site: z.string().optional(),
+  siteCode: z.string().optional(),
+  sector: z.string().optional(),
+  sectorCode: z.string().optional(),
 });
 
 const UpdateAreaSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().optional(),
   isActive: z.boolean().optional(),
+  folder: z.string().optional(),
+  site: z.string().optional(),
+  siteCode: z.string().optional(),
+  sector: z.string().optional(),
+  sectorCode: z.string().optional(),
 });
 
 const CreateTypeSchema = z.object({

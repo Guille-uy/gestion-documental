@@ -18,7 +18,7 @@ export function ConfigPage() {
   const [showTipoForm, setShowTipoForm] = useState(false);
   const [editingArea, setEditingArea] = useState<any>(null);
   const [editingTipo, setEditingTipo] = useState<any>(null);
-  const [areaForm, setAreaForm] = useState({ name: "", code: "", description: "" });
+  const [areaForm, setAreaForm] = useState({ name: "", code: "", description: "", folder: "", site: "", siteCode: "", sector: "", sectorCode: "" });
   const [tipoForm, setTipoForm] = useState({ name: "", code: "", prefix: "", description: "", requiresElaborado: true, requiresRevisado: true, requiresAprobado: true });
 
   useEffect(() => { fetchAreas(); fetchTipos(); }, []);
@@ -44,16 +44,25 @@ export function ConfigPage() {
   const handleAreaSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const payload = {
+        name: areaForm.name,
+        description: areaForm.description,
+        folder: areaForm.folder || undefined,
+        site: areaForm.site || undefined,
+        siteCode: areaForm.siteCode ? areaForm.siteCode.toUpperCase() : undefined,
+        sector: areaForm.sector || undefined,
+        sectorCode: areaForm.sectorCode ? areaForm.sectorCode.toUpperCase() : undefined,
+      };
       if (editingArea) {
-        await apiService.updateArea(editingArea.id, { name: areaForm.name, description: areaForm.description });
+        await apiService.updateArea(editingArea.id, payload);
         toast.success("Área actualizada");
       } else {
-        await apiService.createArea(areaForm);
+        await apiService.createArea({ ...payload, code: areaForm.code.toUpperCase() });
         toast.success("Área creada");
       }
       setShowAreaForm(false);
       setEditingArea(null);
-      setAreaForm({ name: "", code: "", description: "" });
+      setAreaForm({ name: "", code: "", description: "", folder: "", site: "", siteCode: "", sector: "", sectorCode: "" });
       fetchAreas();
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Error al guardar área");
@@ -97,7 +106,7 @@ export function ConfigPage() {
 
   const startEditArea = (area: any) => {
     setEditingArea(area);
-    setAreaForm({ name: area.name, code: area.code, description: area.description || "" });
+    setAreaForm({ name: area.name, code: area.code, description: area.description || "", folder: area.folder || "", site: area.site || "", siteCode: area.siteCode || "", sector: area.sector || "", sectorCode: area.sectorCode || "" });
     setShowAreaForm(true);
   };
 
@@ -180,7 +189,7 @@ export function ConfigPage() {
               Las áreas definen las unidades organizativas asociadas a los documentos.
             </p>
             {canEdit && (
-              <Button size="sm" onClick={() => { setEditingArea(null); setAreaForm({ name: "", code: "", description: "" }); setShowAreaForm(!showAreaForm); }}>
+              <Button size="sm" onClick={() => { setEditingArea(null); setAreaForm({ name: "", code: "", description: "", folder: "", site: "", siteCode: "", sector: "", sectorCode: "" }); setShowAreaForm(!showAreaForm); }}>
                 {showAreaForm && !editingArea ? "Cancelar" : "+ Nueva Área"}
               </Button>
             )}
@@ -189,11 +198,50 @@ export function ConfigPage() {
           {showAreaForm && (
             <form onSubmit={handleAreaSubmit} className="bg-white rounded-xl shadow-sm p-5 sm:p-6 space-y-4 border border-gray-100 border-l-4 border-l-blue-500">
               <h3 className="font-bold text-gray-900">{editingArea ? "Editar Área" : "Nueva Área"}</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input label="Nombre *" value={areaForm.name} onChange={e => setAreaForm(f => ({ ...f, name: e.target.value }))} required placeholder="ej: Calidad" />
-                <Input label="Código *" value={areaForm.code} onChange={e => setAreaForm(f => ({ ...f, code: e.target.value.toUpperCase() }))} required placeholder="ej: CAL" disabled={!!editingArea} />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Input label="Nombre del área *" value={areaForm.name} onChange={e => setAreaForm(f => ({ ...f, name: e.target.value }))} required placeholder="ej: Calidad" />
+                <Input label="Código único *" value={areaForm.code} onChange={e => setAreaForm(f => ({ ...f, code: e.target.value.toUpperCase() }))} required placeholder="ej: AC-FE-CAL" disabled={!!editingArea} />
+                <Input label="Descripción" value={areaForm.description} onChange={e => setAreaForm(f => ({ ...f, description: e.target.value }))} placeholder="Opcional" />
               </div>
-              <Input label="Descripción" value={areaForm.description} onChange={e => setAreaForm(f => ({ ...f, description: e.target.value }))} placeholder="Descripción del área (opcional)" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Carpeta / Proceso</label>
+                  <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={areaForm.folder} onChange={e => setAreaForm(f => ({ ...f, folder: e.target.value }))}>
+                    <option value="">— seleccionar —</option>
+                    {["01 Gestión general del SGI","02 Gestión documental","03 Procesos estratégicos","04 Soporte al negocio","05 Gestión operativa","06 Inocuidad alimentaria"].map(f => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Sitio</label>
+                  <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={areaForm.site} onChange={e => {
+                    const siteMap: Record<string,string> = { "Corporativo":"CO", "Fábrica de elaboración":"FE", "Centro de distribución":"CD" };
+                    setAreaForm(f => ({ ...f, site: e.target.value, siteCode: siteMap[e.target.value] || f.siteCode }));
+                  }}>
+                    <option value="">— seleccionar —</option>
+                    <option value="Corporativo">Corporativo (CO)</option>
+                    <option value="Fábrica de elaboración">Fábrica de elaboración (FE)</option>
+                    <option value="Centro de distribución">Centro de distribución (CD)</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Sector / Proceso</label>
+                  <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={areaForm.sector} onChange={e => {
+                    const sectorMap: Record<string,string> = { "Recursos humanos":"RH","Seguridad y salud ocupacional":"SYSO","Medio ambiente":"MA","Compras":"CMP","Finanzas":"FIN","Data Science":"DS","Tecnologías de la información":"TI","Seguridad":"SEG","Comercial":"COM","I+D+i":"IDI","Mantenimiento":"MT","Aseguramiento de calidad":"AC","Aseguramiento de Calidad":"AC","Producción":"PROD","Operaciones logísticas":"OL" };
+                    setAreaForm(f => ({ ...f, sector: e.target.value, sectorCode: sectorMap[e.target.value] || f.sectorCode }));
+                  }}>
+                    <option value="">— sin sector —</option>
+                    {["Recursos humanos","Seguridad y salud ocupacional","Medio ambiente","Compras","Finanzas","Data Science","Tecnologías de la información","Seguridad","Comercial","I+D+i","Mantenimiento","Aseguramiento de calidad","Producción","Operaciones logísticas"].map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <Input label="Código de sector (auto)" value={areaForm.sectorCode} onChange={e => setAreaForm(f => ({ ...f, sectorCode: e.target.value.toUpperCase() }))} placeholder="ej: AC" />
+              </div>
+              {(areaForm.sectorCode || areaForm.siteCode) && (
+                <div className="text-xs text-blue-700 bg-blue-50 rounded-lg px-3 py-2">
+                  Código de documento ejemplo: <span className="font-mono font-bold">PR-{areaForm.sectorCode||"SECTOR"}-{areaForm.siteCode||"SITIO"}-001</span>
+                </div>
+              )}
               <div className="flex gap-2">
                 <Button type="submit" size="sm">{editingArea ? "Actualizar" : "Crear Área"}</Button>
                 <button type="button" onClick={() => { setShowAreaForm(false); setEditingArea(null); }} className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Cancelar</button>
@@ -208,12 +256,14 @@ export function ConfigPage() {
               <div className="p-10 text-center text-gray-400 text-sm">No hay áreas configuradas</div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[480px]">
+                <table className="w-full text-sm min-w-[700px]">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100">
                       <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Código</th>
                       <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Nombre</th>
-                      <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider hidden sm:table-cell">Descripción</th>
+                      <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider hidden md:table-cell">Carpeta</th>
+                      <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider hidden sm:table-cell">Sitio</th>
+                      <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider hidden lg:table-cell">Sector</th>
                       <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Estado</th>
                       {canEdit && <th className="text-right px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Acciones</th>}
                     </tr>
@@ -225,7 +275,14 @@ export function ConfigPage() {
                           <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-xs">{area.code}</span>
                         </td>
                         <td className="px-4 py-3.5 font-medium text-gray-900">{area.name}</td>
-                        <td className="px-4 py-3.5 text-gray-500 hidden sm:table-cell">{area.description || <span className="text-gray-300">—</span>}</td>
+                        <td className="px-4 py-3.5 text-gray-500 text-xs hidden md:table-cell">{area.folder || <span className="text-gray-300">—</span>}</td>
+                        <td className="px-4 py-3.5 hidden sm:table-cell">
+                          {area.siteCode ? <span className="font-mono text-xs font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">{area.siteCode}</span> : <span className="text-gray-300">—</span>}
+                        </td>
+                        <td className="px-4 py-3.5 hidden lg:table-cell">
+                          {area.sectorCode ? <span className="font-mono text-xs font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">{area.sectorCode}</span> : <span className="text-gray-300">—</span>}
+                          {area.sector && <span className="ml-1.5 text-xs text-gray-500">{area.sector}</span>}
+                        </td>
                         <td className="px-4 py-3.5">
                           <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${area.isActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
                             {area.isActive ? "✓ Activa" : "Inactiva"}
@@ -355,9 +412,9 @@ export function ConfigPage() {
           </div>
 
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs text-blue-700 leading-relaxed">
-            <strong>💡 Convención de código:</strong> Los documentos reciben un código automático según el tipo y año:{" "}
-            <span className="font-mono font-bold">[PREFIJO]-[AÑO]-[CORRELATIVO]</span>.
-            El correlativo se incrementa automáticamente por año y tipo.
+            <strong>💡 Convención de código:</strong> Los documentos reciben un código automático según el tipo, sector y sitio:{" "}
+            <span className="font-mono font-bold">[TIPO]-[SECTOR]-[SITIO]-[NNN]</span>.
+            El correlativo se incrementa automáticamente por combinación tipo+sector+sitio.
           </div>
         </div>
       )}
