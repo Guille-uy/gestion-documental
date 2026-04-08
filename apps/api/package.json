@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "npx prisma db push --accept-data-loss && node dist/index.js",
+    "start": "npx prisma@5 db push --accept-data-loss && npx tsx prisma/seed.ts && node dist/index.js",
     "lint": "eslint src --ext .ts",
     "test": "vitest",
     "db:migrate": "prisma migrate dev",
