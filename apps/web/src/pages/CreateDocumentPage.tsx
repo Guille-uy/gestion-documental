@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { apiService } from "../services/api.js";
 import { useAuthStore } from "../store/auth.js";
 import toast from "react-hot-toast";
+import { RichTextEditor, RichTextEditorHandle, plainToHtml } from "../components/RichTextEditor.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Module definitions
@@ -75,9 +76,12 @@ export function CreateDocumentPage() {
   const [saving, setSaving] = useState(false);
 
   // AI assist
-  const [ai, setAi] = useState({ show: false, loading: false, suggestion: "" });
+  const [ai, setAi] = useState({ show: false, loading: false, suggestion: "", isImprovement: false });
 
-  // Textarea auto-resize ref
+  // Rich text editor ref (one at a time since we render one module per step)
+  const editorRef = useRef<RichTextEditorHandle>(null);
+
+  // Keep taRef for backward compat (unused but avoids breaking other refs)
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   const [configError, setConfigError] = useState(false);
@@ -194,7 +198,8 @@ export function CreateDocumentPage() {
 
   const handleNext = async () => {
     const key = currentModule?.key as ModuleKey | undefined;
-    if (key && moduleCfg[key] === "required" && !content[key]?.trim()) {
+    const plainText = content[key]?.replace(/<[^>]+>/g, "").trim() ?? "";
+    if (key && moduleCfg[key] === "required" && !plainText) {
       toast.error("Este módulo es requerido — completá el contenido antes de continuar"); return;
     }
     try {
@@ -213,21 +218,30 @@ export function CreateDocumentPage() {
 
   const handleAiAssist = async () => {
     if (!currentModule) return;
-    setAi({ show: true, loading: true, suggestion: "" });
+    const key = currentModule.key as ModuleKey;
+    const existingContent = content[key] ?? "";
+    const hasExisting = existingContent.replace(/<[^>]+>/g, "").trim().length > 10;
+    setAi({ show: true, loading: true, suggestion: "", isImprovement: hasExisting });
     try {
-      const res = await apiService.aiAssist({ module: currentModule.key, docType: setup.type, title: setup.title, area: setup.area });
-      setAi({ show: true, loading: false, suggestion: res.data.data.suggestion });
+      const res = await apiService.aiAssist({
+        module: currentModule.key,
+        docType: setup.type,
+        title: setup.title,
+        area: setup.area,
+        existingContent: hasExisting ? existingContent : undefined,
+      });
+      setAi({ show: true, loading: false, suggestion: res.data.data.suggestion, isImprovement: hasExisting });
     } catch {
       toast.error("Error al generar sugerencia");
-      setAi({ show: false, loading: false, suggestion: "" });
+      setAi({ show: false, loading: false, suggestion: "", isImprovement: false });
     }
   };
 
   const handleUseSuggestion = () => {
     if (!currentModule) return;
-    const cur = content[currentModule.key] ?? "";
-    setContent(c => ({ ...c, [currentModule.key]: cur + (cur.trim() ? "\n\n" : "") + ai.suggestion }));
-    setAi({ show: false, loading: false, suggestion: "" });
+    const html = plainToHtml(ai.suggestion);
+    editorRef.current?.insertContent(html);
+    setAi({ show: false, loading: false, suggestion: "", isImprovement: false });
     toast.success("Sugerencia insertada");
   };
 
@@ -404,25 +418,28 @@ export function CreateDocumentPage() {
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white rounded-lg transition-colors whitespace-nowrap flex-shrink-0">
               {ai.loading
                 ? <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />Generando...</>
-                : <>✨ Sugerir con IA</>}
+                : content[key]?.replace(/<[^>]+>/g, "").trim().length > 10
+                  ? <>✨ Mejorar con IA</>
+                  : <>✨ Sugerir con IA</>}
             </button>
           </div>
 
-          {/* Textarea */}
+          {/* Rich text editor */}
           <div className="p-6 space-y-4">
-            <textarea
-              ref={taRef}
+            <RichTextEditor
+              ref={editorRef}
               value={content[key] ?? ""}
-              rows={10}
-              onChange={e => { setContent(c => ({ ...c, [key]: e.target.value })); e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
+              onChange={html => setContent(c => ({ ...c, [key]: html }))}
               placeholder={visibility === "required" ? "Este módulo es requerido — redacte el contenido aquí..." : "Este módulo es opcional — puede dejarlo en blanco..."}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm leading-relaxed resize-none overflow-hidden font-mono min-h-[220px]"
+              minHeight={260}
             />
             {/* AI suggestion panel */}
             {ai.show && !ai.loading && ai.suggestion && (
               <div className="border border-violet-200 rounded-lg bg-violet-50 p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-violet-800">✨ Sugerencia de IA</span>
+                  <span className="text-sm font-semibold text-violet-800">
+                    {ai.isImprovement ? "✨ Mejora sugerida por IA" : "✨ Sugerencia de IA"}
+                  </span>
                   <button type="button" onClick={() => setAi(a => ({ ...a, show: false }))} className="text-violet-400 hover:text-violet-600 text-xl leading-none">×</button>
                 </div>
                 <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono bg-white rounded p-3 max-h-52 overflow-y-auto border border-violet-100">{ai.suggestion}</pre>
@@ -465,7 +482,7 @@ export function CreateDocumentPage() {
 
   // ── Review step ────────────────────────────────────────────────────────────
   const renderReview = () => {
-    const requiredEmpty = activeModules.filter((m: any) => moduleCfg[m.key as ModuleKey] === "required" && !content[m.key]?.trim());
+        const requiredEmpty = activeModules.filter((m: any) => moduleCfg[m.key as ModuleKey] === "required" && !(content[m.key] ?? "").replace(/<[^>]+>/g, "").trim());
     return (
       <div className="space-y-5">
         <div>
@@ -481,7 +498,7 @@ export function CreateDocumentPage() {
           {activeModules.map((m: any, i: number) => {
             const key = m.key as ModuleKey;
             const vis = moduleCfg[key];
-            const text = content[key]?.trim() ?? "";
+            const text = (content[key] ?? "").replace(/<[^>]+>/g, "").trim();
             const isEmpty = !text;
             const isRequired = vis === "required";
             return (
@@ -495,7 +512,7 @@ export function CreateDocumentPage() {
                   <div className="ml-auto flex items-center gap-3">
                     {isEmpty
                       ? <span className={`text-xs font-medium ${isRequired ? "text-red-600" : "text-gray-400"}`}>{isRequired ? "✗ Sin completar" : "— No completado"}</span>
-                      : <span className="text-xs font-medium text-green-600">✓ Completado ({text.length} caracteres)</span>
+                      : <span className="text-xs font-medium text-green-600">✓ Completado ({text.length} car.)</span>
                     }
                     <button type="button" onClick={() => setStep(i + 1)} className="text-xs text-blue-600 hover:underline">Editar</button>
                   </div>

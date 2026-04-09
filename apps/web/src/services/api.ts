@@ -249,7 +249,7 @@ class ApiService {
   }
 
   // Wizard: get AI-assisted template text for a module
-  aiAssist(params: { module: string; docType: string; title: string; area: string }) {
+  aiAssist(params: { module: string; docType: string; title: string; area: string; existingContent?: string }) {
     return this.client.post("/documents/ai-assist", params);
   }
 }

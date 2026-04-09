@@ -288,8 +288,10 @@ export function DocumentDetailPage() {
   if (!doc) return <div className="text-center py-8">Documento no encontrado</div>;
 
   const tieneArchivo = !!doc.googleDriveFileId;
+  const hasModuleContent = doc.content && typeof doc.content === "object" &&
+    Object.values(doc.content as Record<string, string>).some(v => typeof v === "string" && v.replace(/<[^>]+>/g, "").trim().length > 0);
   const canEdit = doc.status === "DRAFT" && doc.createdBy === user?.id;
-  const canSubmitForReview = doc.status === "DRAFT" && doc.createdBy === user?.id && tieneArchivo;
+  const canSubmitForReview = doc.status === "DRAFT" && doc.createdBy === user?.id && (tieneArchivo || hasModuleContent);
   const canReview = (user?.role === "REVIEWER" || user?.role === "APPROVER" || user?.role === "ADMIN") && doc.status === "IN_REVIEW";
   const canPublicar = (user?.role === "APPROVER" || user?.role === "ADMIN" || user?.role === "QUALITY_MANAGER") && doc.status === "IN_REVIEW" && doc.reviewTasks?.length > 0 && doc.reviewTasks?.every((t: any) => t.status !== "PENDING");
   const canNuevaVersion = (user?.role === "DOCUMENT_OWNER" || user?.role === "ADMIN" || user?.role === "QUALITY_MANAGER") && doc.status === "PUBLISHED";
@@ -299,8 +301,79 @@ export function DocumentDetailPage() {
   const appUrl = window.location.origin;
   const docUrl = `${appUrl}/documents/${doc.id}`;
 
+  const STATUS_LABELS: Record<string, string> = {
+    DRAFT: "BORRADOR",
+    IN_REVIEW: "EN REVISIÓN",
+    APPROVED: "APROBADO",
+    OBSOLETE: "OBSOLETO",
+    PUBLISHED: "COPIA CONTROLADA",
+  };
+  const watermarkText = STATUS_LABELS[doc.status] ?? doc.status;
+  const moduleLabels: Record<string, string> = {
+    objetivo: "Objetivo",
+    alcance: "Alcance",
+    responsabilidades: "Responsabilidades",
+    docsRelacionados: "Documentos relacionados",
+    descripcion: "Descripción / Contenido",
+    controlCambios: "Control de cambios",
+  };
+
   return (
     <div className="space-y-7">
+      {/* ── Print styles ── */}
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          #doc-print-area, #doc-print-area * { visibility: visible; }
+          #doc-print-area { position: absolute; inset: 0; }
+          .no-print { display: none !important; }
+          .print-watermark::before {
+            content: "${watermarkText}";
+            position: fixed;
+            top: 42%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-40deg);
+            font-size: 100px;
+            font-weight: 900;
+            color: #9CA3AF;
+            opacity: 0.12;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 9999;
+          }
+        }
+      `}</style>
+
+      {/* ── Printable area ── */}
+      <div id="doc-print-area" className="print-watermark">
+        {/* Centenario header — only visible when printing */}
+        <div className="hidden print:block mb-6">
+          <table className="w-full border-collapse border border-gray-800 text-sm">
+            <tbody>
+              <tr>
+                <td className="border border-gray-800 p-3 w-28 align-middle text-center">
+                  <img src="/logo-centenario.png" alt="Centenario" className="h-14 mx-auto object-contain" />
+                </td>
+                <td className="border border-gray-800 p-3 text-center align-middle">
+                  <p className="font-bold text-base uppercase tracking-wide">{doc.title}</p>
+                </td>
+                <td className="border border-gray-800 p-3 w-36 align-middle text-center">
+                  <p className="font-mono font-bold text-sm">{doc.code}</p>
+                </td>
+              </tr>
+              <tr>
+                <td colSpan={3} className="border border-gray-800 px-3 py-2 text-center text-xs text-gray-700">
+                  {doc.area ? `${doc.area} | ` : ""}
+                  Versión: {doc.currentVersionLabel}
+                  {doc.publishedAt ? ` | Vigencia: ${format(new Date(doc.publishedAt), "dd/MM/yyyy")}` : ""}
+                  {doc.nextReviewDate ? ` | Próxima revisión: ${format(new Date(doc.nextReviewDate), "dd/MM/yyyy")}` : ""}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      {/* ── Screen header ── */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{doc.title}</h1>
@@ -353,9 +426,28 @@ export function DocumentDetailPage() {
         </div>
       )}
 
+      {/* Module content display */}
+      {hasModuleContent && doc.content && typeof doc.content === "object" && (
+        <div className="bg-white rounded-lg shadow p-6 space-y-6">
+          <h2 className="font-bold text-gray-900">Contenido del documento</h2>
+          {Object.entries(doc.content as Record<string, string>)
+            .filter(([, v]) => typeof v === "string" && v.replace(/<[^>]+>/g, "").trim().length > 0)
+            .map(([key, value]) => (
+              <div key={key}>
+                <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-2 border-b border-gray-100 pb-1">
+                  {moduleLabels[key] ?? key}
+                </h3>
+                <div
+                  className="prose prose-sm max-w-none text-gray-800"
+                  dangerouslySetInnerHTML={{ __html: value }}
+                />
+              </div>
+            ))}
+        </div>
+      )}
+
       {/* #2 PDF inline preview */}
-      {previewUrl && (
-        <div id="pdf-preview" className="bg-white rounded-lg shadow p-4">
+      {previewUrl && (        <div id="pdf-preview" className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-bold text-gray-900">Previsualización del documento</h2>
             <button onClick={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}
@@ -390,10 +482,10 @@ export function DocumentDetailPage() {
               ✅ Lectura confirmada
             </span>
           )}
-          {doc.status === "DRAFT" && doc.createdBy === user?.id && !tieneArchivo && (
+          {doc.status === 'DRAFT' && doc.createdBy === user?.id && !tieneArchivo && !hasModuleContent && (
             <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">
               <span></span>
-              <span>Debe subir un archivo antes de enviar a revisión</span>
+              <span>Debe subir un archivo o redactar contenido antes de enviar a revisión</span>
             </div>
           )}
           {canSubmitForReview && (
@@ -413,6 +505,12 @@ export function DocumentDetailPage() {
             <Button onClick={() => setShowNewVersionForm(!showNewVersionForm)} variant="outline" size="sm">
               {showNewVersionForm ? "Cancelar" : "🔄 Crear Nueva Versión"}
             </Button>
+          )}
+          {doc.status !== "PUBLISHED" && (
+            <Button onClick={() => window.print()} variant="outline" size="sm">🖨 Imprimir</Button>
+          )}
+          {doc.status === "PUBLISHED" && (
+            <Button onClick={() => window.print()} variant="outline" size="sm">🖨 Imprimir</Button>
           )}
         </div>
       </div>
@@ -639,6 +737,7 @@ export function DocumentDetailPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -407,6 +407,42 @@ function buildTemplate(module: string, docType: string, title: string, area: str
   return mod[docType] || mod["DEFAULT"] || `Contenido sugerido para el módulo "${module}" del documento "${title}" (${area}).`;
 }
 
+// ── Content improvement helper ───────────────────────────────────────────────
+
+function improveContent(existingHtml: string, module: string, docType: string, title: string, area: string): string {
+  const plain = existingHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+
+  const complements: Record<string, Record<string, string>> = {
+    objetivo: {
+      DEFAULT: `Complemento sugerido para ampliar el objetivo:\n\nAdemás de lo indicado, se recomienda incluir:\n- El marco normativo aplicable (ISO 9001:2015, regulaciones sectoriales)\n- El beneficio esperado para ${area} y la organización\n- Los resultados medibles que permitan evaluar el cumplimiento del objetivo\n\nEjemplo de cierre: "Este documento contribuye a la mejora continua del Sistema de Gestión de ${area}, en conformidad con los requisitos aplicables."`,
+    },
+    alcance: {
+      DEFAULT: `Complemento sugerido para el alcance:\n\n**Exclusiones recomendadas a considerar:**\n- Actividades tercerizadas no controladas por ${area}\n- Documentos de otras áreas salvo interfaz explícita\n- [Especificar otras exclusiones relevantes]\n\n**Interfaces con otros procesos:**\n- [Proceso o área aguas arriba]\n- [Proceso o área aguas abajo]\n\nSe recomienda clarificar los límites del proceso y los puntos de transferencia de responsabilidad.`,
+    },
+    responsabilidades: {
+      DEFAULT: `Responsabilidades complementarias a considerar:\n\n**Comité de Gestión de Calidad:**\nRealiza seguimiento periódico al cumplimiento de "${title}". Escala incumplimientos a la dirección cuando corresponda.\n\n**Auditor interno:**\nVerifica la aplicación efectiva durante auditorías programadas. Identifica oportunidades de mejora y no conformidades.\n\n**Personal en formación / nuevos ingresos:**\nDeben recibir instrucción sobre este documento antes de ejecutar las actividades correspondientes.`,
+    },
+    docsRelacionados: {
+      DEFAULT: `Documentos adicionales relacionados a revisar:\n\n| Código | Título | Tipo |\n|--------|--------|------|\n| [CÓDIGO] | Matriz de riesgos del proceso | RG |\n| [CÓDIGO] | Plan de capacitación | PL |\n| [CÓDIGO] | Procedimiento de no conformidades | PR |\n| [CÓDIGO] | Manual de gestión de calidad | MN |\n\n**Legislación aplicable:**\n- [Decreto / Normativa local aplicable]\n- [Reglamento sectorial si corresponde]`,
+    },
+    descripcion: {
+      PR: `## Controles y verificaciones\n\n### Puntos de control críticos\n| Paso | Control | Frecuencia | Responsable |\n|------|---------|------------|-------------|\n| [Paso N] | [Descripción del control] | [Frecuencia] | [Rol] |\n\n### Manejo de desvíos\nEn caso de detectar desvíos durante la ejecución:\n1. Detener la actividad si hay riesgo de producto/servicio no conforme\n2. Notificar al responsable del proceso\n3. Registrar el desvío según el procedimiento de no conformidades\n4. Evaluar la necesidad de retrabajo o descarte\n\n### Registros requeridos\n[Indicar los formularios, registros o evidencias que deben completarse al ejecutar este procedimiento]`,
+      DEFAULT: `## Consideraciones adicionales\n\n### Gestión de excepciones\nCuando las condiciones no permitan aplicar este documento en su totalidad:\n- Documentar la excepción y su justificación\n- Solicitar aprobación del responsable del proceso\n- Establecer medidas compensatorias si corresponde\n\n### Indicadores de desempeño\n| Indicador | Fórmula | Meta | Frecuencia |\n|-----------|---------|------|------------|\n| [Nombre] | [Cálculo] | [Valor meta] | [Mensual/Trimestral] |\n\n### Mejora continua\nEste documento debe revisarse cuando:\n- Se detecten no conformidades recurrentes relacionadas\n- Cambien los requisitos normativos o del cliente\n- Ocurran cambios organizacionales que impacten el proceso`,
+    },
+    controlCambios: {
+      DEFAULT: `Versiones previas y próxima revisión planificada:\n\n| Versión | Fecha | Descripción del cambio | Elaborado | Revisado | Aprobado |\n|---------|-------|------------------------|-----------|----------|----------|\n| v1.0 | [Fecha] | Versión inicial | [Autor] | [Revisor] | [Aprobador] |\n\n**Próxima revisión programada:** [Indicar fecha según ciclo de revisión del SGC, normalmente anual]\n\n**Distribución controlada:**\n- [Área 1] — [Responsable]\n- [Área 2] — [Responsable]`,
+    },
+  };
+
+  const modComplements = complements[module] || {};
+  const complement = modComplements[docType] || modComplements["DEFAULT"] ||
+    `Complemento sugerido para "${module}" — "${title}" (${area}):\n\n[Revise el contenido actual e incorpore criterios adicionales, referencias normativas o indicadores de seguimiento según corresponda.]`;
+
+  const wordCount = plain.split(/\s+/).filter(Boolean).length;
+  const preview = plain.length > 120 ? plain.slice(0, 120) + "…" : plain;
+  return `--- Contenido actual detectado (${wordCount} palabras): "${preview}" ---\n\n${complement}`;
+}
+
 // ── Content update handler ───────────────────────────────────────────────────
 
 export const updateContentHandler = asyncHandler(
@@ -437,16 +473,20 @@ export const updateContentHandler = asyncHandler(
 export const aiAssistHandler = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     if (!req.user) return res.status(401).json({ success: false, error: "Not authenticated" });
-    const { module, docType, title, area } = req.body as {
+    const { module, docType, title, area, existingContent } = req.body as {
       module: string;
       docType: string;
       title: string;
       area: string;
+      existingContent?: string;
     };
     if (!module || !docType) {
       return res.status(400).json({ success: false, error: "module and docType are required" });
     }
-    const suggestion = buildTemplate(module, docType, title || "el documento", area || "el área");
+    const hasExisting = typeof existingContent === "string" && existingContent.replace(/<[^>]+>/g, "").trim().length > 10;
+    const suggestion = hasExisting
+      ? improveContent(existingContent!, module, docType, title || "el documento", area || "el área")
+      : buildTemplate(module, docType, title || "el documento", area || "el área");
     res.json({ success: true, data: { suggestion } });
   }
 );
