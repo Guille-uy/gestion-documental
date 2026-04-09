@@ -80,8 +80,10 @@ export function CreateDocumentPage() {
   // Textarea auto-resize ref
   const taRef = useRef<HTMLTextAreaElement>(null);
 
-  // ── Load catalog data ──────────────────────────────────────────────────────
-  useEffect(() => {
+  const [configError, setConfigError] = useState(false);
+
+  const loadCatalog = () => {
+    setConfigError(false);
     Promise.all([apiService.getAreas(), apiService.getDocumentTypes()]).then(([aRes, tRes]) => {
       const aList: any[] = aRes.data.data ?? [];
       const tList: any[] = tRes.data.data ?? [];
@@ -93,8 +95,18 @@ export function CreateDocumentPage() {
         const areaObj = aList.find((a: any) => a.name === defaultArea) ?? aList[0];
         setSetup(s => ({ ...s, type: defaultType, area: defaultArea, siteCode: areaObj?.siteCode ?? "", sectorCode: areaObj?.sectorCode ?? "" }));
       }
-    }).catch(() => toast.error("Error al cargar configuración"));
-  }, []);
+    }).catch((err: any) => {
+      if (err?.response?.status === 401) {
+        navigate("/login");
+      } else {
+        setConfigError(true);
+        toast.error("Error al cargar configuración");
+      }
+    });
+  };
+
+  // ── Load catalog data ──────────────────────────────────────────────────────
+  useEffect(() => { loadCatalog(); }, []);
 
   // ── Load draft ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -270,6 +282,14 @@ export function CreateDocumentPage() {
         <h1 className="text-2xl font-bold text-gray-900">Nuevo documento</h1>
         <p className="text-gray-500 text-sm mt-1">Configurá el tipo, área y título. Los módulos de redacción se determinan por el tipo.</p>
       </div>
+      {configError && (
+        <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
+          <span>No se pudo cargar la configuración.</span>
+          <button type="button" onClick={loadCatalog} className="ml-auto px-3 py-1 bg-red-100 hover:bg-red-200 rounded text-red-800 font-medium">
+            Reintentar
+          </button>
+        </div>
+      )}
       <form onSubmit={handleCreate} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
         <div className="grid sm:grid-cols-2 gap-5">
           {/* Type */}
