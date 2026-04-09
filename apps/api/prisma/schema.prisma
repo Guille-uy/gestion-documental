@@ -67,7 +67,9 @@ model Document {
   reviewedBy          String?
   // Campos para codificación TIPO-SECTOR-SITIO-NUM
   siteCode            String?        // CO, FE, CD
-  sectorCode          String?        // AC, RH, SYSO, etc.  content             Json?          // Module section content: { objetivo, alcance, ... }  createdBy           String
+  sectorCode          String?        // AC, RH, SYSO, etc.
+  content             Json?          // Module section content: { objetivo, alcance, ... }
+  createdBy           String
   updatedBy           String
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
