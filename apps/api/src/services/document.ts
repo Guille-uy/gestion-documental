@@ -205,6 +205,7 @@ export async function updateDocument(
     description?: string;
     area?: string;
     nextReviewDate?: Date | null;
+    content?: Record<string, unknown>;
   },
   userId: string
 ) {
@@ -779,9 +780,12 @@ function formatDocument(doc: any) {
     description: doc.description,
     type: doc.type,
     area: doc.area,
+    siteCode: doc.siteCode,
+    sectorCode: doc.sectorCode,
     status: doc.status,
     currentVersionLabel: doc.currentVersionLabel,
     googleDriveFileId: doc.googleDriveFileId,
+    content: doc.content ?? null,
     createdBy: doc.createdBy,
     createdAt: doc.createdAt,
     updatedBy: doc.updatedBy,

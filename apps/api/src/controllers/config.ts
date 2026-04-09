@@ -44,6 +44,7 @@ const UpdateTypeSchema = z.object({
   requiresElaborado: z.boolean().optional(),
   requiresRevisado: z.boolean().optional(),
   requiresAprobado: z.boolean().optional(),
+  moduleConfig: z.record(z.string(), z.enum(['required', 'optional', 'hidden'])).optional(),
 });
 
 // ---- AREAS ----

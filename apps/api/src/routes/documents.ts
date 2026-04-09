@@ -18,6 +18,8 @@ import {
   archiveDocumentHandler,
   deleteDocumentHandler,
   bulkDocumentsHandler,
+  updateContentHandler,
+  aiAssistHandler,
 } from "../controllers/document.js";
 import { authMiddleware } from "../middleware/auth.js";
 
@@ -43,11 +45,15 @@ router.get("/my-tasks", myTasksHandler);
 // Bulk operations
 router.patch("/bulk", bulkDocumentsHandler);
 
+// AI assist (template generator) — must be before /:documentId routes
+router.post("/ai-assist", aiAssistHandler);
+
 // Document CRUD
 router.post("/", createDocumentHandler);
 router.get("/", listDocumentsHandler);
 router.get("/:documentId", getDocumentHandler);
 router.patch("/:documentId", updateDocumentHandler);
+router.patch("/:documentId/content", updateContentHandler);
 router.patch("/:documentId/archive", archiveDocumentHandler);
 router.delete("/:documentId", deleteDocumentHandler);
 

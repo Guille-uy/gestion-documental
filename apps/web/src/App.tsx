@@ -52,6 +52,7 @@ function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/documents" element={<DocumentsListPage />} />
             <Route path="/documents/create" element={<CreateDocumentPage />} />
+            <Route path="/documents/create/:draftId" element={<CreateDocumentPage />} />
             <Route path="/documents/:documentId" element={<DocumentDetailPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/flujo-iso" element={<ISOFlowPage />} />

@@ -1,11 +1,11 @@
-﻿import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useRef, useState } from "react";
 import { Button } from "../components/Button.js";
 import { Input } from "../components/Input.js";
 import { apiService } from "../services/api.js";
 import { useAuthStore } from "../store/auth.js";
 import toast from "react-hot-toast";
 
-type Tab = "areas" | "tipos";
+type Tab = "areas" | "tipos" | "catalogos" | "modulos";
 
 export function ConfigPage() {
   const { user } = useAuthStore();
@@ -21,7 +21,78 @@ export function ConfigPage() {
   const [areaForm, setAreaForm] = useState({ name: "", code: "", description: "", folder: "", site: "", siteCode: "", sector: "", sectorCode: "" });
   const [tipoForm, setTipoForm] = useState({ name: "", code: "", prefix: "", description: "", requiresElaborado: true, requiresRevisado: true, requiresAprobado: true });
 
+  const areaFormRef = useRef<HTMLFormElement>(null);
+
+  /* ── Module config constants ── */
+  const MODULE_KEYS = ["objetivo", "alcance", "responsabilidades", "docsRelacionados", "descripcion", "controlCambios"] as const;
+  const MODULE_LABELS: Record<string, string> = { objetivo: "🎯 Objetivo", alcance: "📐 Alcance", responsabilidades: "👥 Responsab.", docsRelacionados: "🔗 Docs rel.", descripcion: "📝 Descripción", controlCambios: "📋 Ctrl. cambios" };
+  const DEFAULT_MOD_CFG: Record<string, Record<string, string>> = {
+    PO:{objetivo:"required",alcance:"required",responsabilidades:"optional",docsRelacionados:"optional",descripcion:"required",controlCambios:"required"},
+    MN:{objetivo:"required",alcance:"required",responsabilidades:"optional",docsRelacionados:"optional",descripcion:"required",controlCambios:"required"},
+    DM:{objetivo:"required",alcance:"required",responsabilidades:"optional",docsRelacionados:"optional",descripcion:"required",controlCambios:"required"},
+    PR:{objetivo:"required",alcance:"required",responsabilidades:"optional",docsRelacionados:"optional",descripcion:"required",controlCambios:"required"},
+    IT:{objetivo:"optional",alcance:"optional",responsabilidades:"optional",docsRelacionados:"optional",descripcion:"required",controlCambios:"required"},
+    PT:{objetivo:"required",alcance:"required",responsabilidades:"optional",docsRelacionados:"optional",descripcion:"required",controlCambios:"required"},
+    RG:{objetivo:"hidden",alcance:"hidden",responsabilidades:"hidden",docsRelacionados:"hidden",descripcion:"optional",controlCambios:"hidden"},
+    LI:{objetivo:"hidden",alcance:"hidden",responsabilidades:"hidden",docsRelacionados:"hidden",descripcion:"optional",controlCambios:"hidden"},
+    PL:{objetivo:"hidden",alcance:"hidden",responsabilidades:"hidden",docsRelacionados:"hidden",descripcion:"optional",controlCambios:"hidden"},
+    IN:{objetivo:"hidden",alcance:"hidden",responsabilidades:"hidden",docsRelacionados:"hidden",descripcion:"optional",controlCambios:"hidden"},
+    FT:{objetivo:"hidden",alcance:"hidden",responsabilidades:"hidden",docsRelacionados:"hidden",descripcion:"required",controlCambios:"hidden"},
+    DF:{objetivo:"hidden",alcance:"hidden",responsabilidades:"hidden",docsRelacionados:"hidden",descripcion:"required",controlCambios:"hidden"},
+    AR:{objetivo:"hidden",alcance:"hidden",responsabilidades:"hidden",docsRelacionados:"hidden",descripcion:"required",controlCambios:"hidden"},
+    ES:{objetivo:"hidden",alcance:"hidden",responsabilidades:"hidden",docsRelacionados:"hidden",descripcion:"required",controlCambios:"hidden"},
+    CE:{objetivo:"hidden",alcance:"hidden",responsabilidades:"hidden",docsRelacionados:"hidden",descripcion:"required",controlCambios:"hidden"},
+    CI:{objetivo:"hidden",alcance:"hidden",responsabilidades:"hidden",docsRelacionados:"hidden",descripcion:"required",controlCambios:"hidden"},
+    AN:{objetivo:"hidden",alcance:"hidden",responsabilidades:"hidden",docsRelacionados:"hidden",descripcion:"optional",controlCambios:"required"},
+    OG:{objetivo:"hidden",alcance:"hidden",responsabilidades:"hidden",docsRelacionados:"hidden",descripcion:"optional",controlCambios:"required"},
+    CT:{objetivo:"optional",alcance:"hidden",responsabilidades:"optional",docsRelacionados:"hidden",descripcion:"optional",controlCambios:"hidden"},
+  };
+
+  const [moduleConfigs, setModuleConfigs] = useState<Record<string, Record<string, string>>>({});
+  const [savingModuleCfg, setSavingModuleCfg] = useState<string | null>(null);
+
+  /* ── Catálogos (localStorage) ── */
+  const CATALOG_KEY = "dms_catalogs_v1";
+  const _load = () => { try { return JSON.parse(localStorage.getItem(CATALOG_KEY) || "{}"); } catch { return {}; } };
+  const _save = (data: any) => localStorage.setItem(CATALOG_KEY, JSON.stringify(data));
+
+  const [carpetas, setCarpetasRaw] = useState<string[]>(() => _load().carpetas ?? ["01 Gestión general del SGI","02 Gestión documental","03 Procesos estratégicos","04 Soporte al negocio","05 Gestión operativa","06 Inocuidad alimentaria"]);
+  const [sitios, setSitiosRaw] = useState<{name:string;code:string}[]>(() => _load().sitios ?? [{name:"Corporativo",code:"CO"},{name:"Fábrica de elaboración",code:"FE"},{name:"Centro de distribución",code:"CD"}]);
+  const [sectores, setSectoresRaw] = useState<{name:string;code:string}[]>(() => _load().sectores ?? [{name:"Recursos humanos",code:"RH"},{name:"Seguridad y salud ocupacional",code:"SYSO"},{name:"Medio ambiente",code:"MA"},{name:"Compras",code:"CMP"},{name:"Finanzas",code:"FIN"},{name:"Data Science",code:"DS"},{name:"Tecnologías de la información",code:"TI"},{name:"Seguridad",code:"SEG"},{name:"Comercial",code:"COM"},{name:"I+D+i",code:"IDI"},{name:"Mantenimiento",code:"MT"},{name:"Aseguramiento de calidad",code:"AC"},{name:"Producción",code:"PROD"},{name:"Operaciones logísticas",code:"OL"}]);
+
+  const [newCarpeta, setNewCarpeta] = useState("");
+  const [newSitio, setNewSitio] = useState({ name: "", code: "" });
+  const [newSector, setNewSector] = useState({ name: "", code: "" });
+
+  const setCarpetas = (v: string[]) => { setCarpetasRaw(v); _save({ ..._load(), carpetas: v }); };
+  const setSitios = (v: {name:string;code:string}[]) => { setSitiosRaw(v); _save({ ..._load(), sitios: v }); };
+  const setSectores = (v: {name:string;code:string}[]) => { setSectoresRaw(v); _save({ ..._load(), sectores: v }); };
+
   useEffect(() => { fetchAreas(); fetchTipos(); }, []);
+
+  // Sync module configs from tipos
+  useEffect(() => {
+    if (tipos.length === 0) return;
+    setModuleConfigs(prev => {
+      const next = { ...prev };
+      tipos.forEach((t: any) => {
+        if (!next[t.id]) next[t.id] = (t.moduleConfig as Record<string, string>) ?? DEFAULT_MOD_CFG[t.code] ?? {};
+      });
+      return next;
+    });
+  }, [tipos]);
+
+  const handleSaveModuleConfig = async (tipoId: string) => {
+    const cfg = moduleConfigs[tipoId];
+    if (!cfg) return;
+    setSavingModuleCfg(tipoId);
+    try {
+      await apiService.updateDocumentType(tipoId, { moduleConfig: cfg });
+      toast.success("Configuración de módulos guardada");
+      await fetchTipos();
+    } catch { toast.error("Error guardando configuración"); }
+    finally { setSavingModuleCfg(null); }
+  };
 
   const fetchAreas = async () => {
     setIsLoadingAreas(true);
@@ -108,6 +179,7 @@ export function ConfigPage() {
     setEditingArea(area);
     setAreaForm({ name: area.name, code: area.code, description: area.description || "", folder: area.folder || "", site: area.site || "", siteCode: area.siteCode || "", sector: area.sector || "", sectorCode: area.sectorCode || "" });
     setShowAreaForm(true);
+    setTimeout(() => areaFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
   };
 
   const startEditTipo = (tipo: any) => {
@@ -179,6 +251,16 @@ export function ConfigPage() {
             </span>
           )}
         </button>
+        {canEdit && (
+          <button className={tabClass(tab === "catalogos")} onClick={() => setTab("catalogos")}>
+            🗃 Catálogos
+          </button>
+        )}
+        {canEdit && (
+          <button className={tabClass(tab === "modulos")} onClick={() => setTab("modulos")}>
+            🧩 Módulos
+          </button>
+        )}
       </div>
 
       {/* ── AREAS TAB ── */}
@@ -196,7 +278,7 @@ export function ConfigPage() {
           </div>
 
           {showAreaForm && (
-            <form onSubmit={handleAreaSubmit} className="bg-white rounded-xl shadow-sm p-5 sm:p-6 space-y-4 border border-gray-100 border-l-4 border-l-blue-500">
+            <form ref={areaFormRef} onSubmit={handleAreaSubmit} className="bg-white rounded-xl shadow-sm p-5 sm:p-6 space-y-4 border border-gray-100 border-l-4 border-l-blue-500">
               <h3 className="font-bold text-gray-900">{editingArea ? "Editar Área" : "Nueva Área"}</h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Input label="Nombre del área *" value={areaForm.name} onChange={e => setAreaForm(f => ({ ...f, name: e.target.value }))} required placeholder="ej: Calidad" />
@@ -208,19 +290,17 @@ export function ConfigPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Carpeta / Proceso</label>
                   <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={areaForm.folder} onChange={e => setAreaForm(f => ({ ...f, folder: e.target.value }))}>
                     <option value="">— seleccionar —</option>
-                    {["01 Gestión general del SGI","02 Gestión documental","03 Procesos estratégicos","04 Soporte al negocio","05 Gestión operativa","06 Inocuidad alimentaria"].map(f => <option key={f} value={f}>{f}</option>)}
+                    {carpetas.map(f => <option key={f} value={f}>{f}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Sitio</label>
                   <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={areaForm.site} onChange={e => {
-                    const siteMap: Record<string,string> = { "Corporativo":"CO", "Fábrica de elaboración":"FE", "Centro de distribución":"CD" };
-                    setAreaForm(f => ({ ...f, site: e.target.value, siteCode: siteMap[e.target.value] || f.siteCode }));
+                    const found = sitios.find(s => s.name === e.target.value);
+                    setAreaForm(f => ({ ...f, site: e.target.value, siteCode: found?.code || f.siteCode }));
                   }}>
                     <option value="">— seleccionar —</option>
-                    <option value="Corporativo">Corporativo (CO)</option>
-                    <option value="Fábrica de elaboración">Fábrica de elaboración (FE)</option>
-                    <option value="Centro de distribución">Centro de distribución (CD)</option>
+                    {sitios.map(s => <option key={s.name} value={s.name}>{s.name} ({s.code})</option>)}
                   </select>
                 </div>
               </div>
@@ -228,11 +308,11 @@ export function ConfigPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Sector / Proceso</label>
                   <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={areaForm.sector} onChange={e => {
-                    const sectorMap: Record<string,string> = { "Recursos humanos":"RH","Seguridad y salud ocupacional":"SYSO","Medio ambiente":"MA","Compras":"CMP","Finanzas":"FIN","Data Science":"DS","Tecnologías de la información":"TI","Seguridad":"SEG","Comercial":"COM","I+D+i":"IDI","Mantenimiento":"MT","Aseguramiento de calidad":"AC","Aseguramiento de Calidad":"AC","Producción":"PROD","Operaciones logísticas":"OL" };
-                    setAreaForm(f => ({ ...f, sector: e.target.value, sectorCode: sectorMap[e.target.value] || f.sectorCode }));
+                    const found = sectores.find(s => s.name === e.target.value);
+                    setAreaForm(f => ({ ...f, sector: e.target.value, sectorCode: found?.code || f.sectorCode }));
                   }}>
                     <option value="">— sin sector —</option>
-                    {["Recursos humanos","Seguridad y salud ocupacional","Medio ambiente","Compras","Finanzas","Data Science","Tecnologías de la información","Seguridad","Comercial","I+D+i","Mantenimiento","Aseguramiento de calidad","Producción","Operaciones logísticas"].map(s => <option key={s} value={s}>{s}</option>)}
+                    {sectores.map(s => <option key={s.name} value={s.name}>{s.name} ({s.code})</option>)}
                   </select>
                 </div>
                 <Input label="Código de sector (auto)" value={areaForm.sectorCode} onChange={e => setAreaForm(f => ({ ...f, sectorCode: e.target.value.toUpperCase() }))} placeholder="ej: AC" />
@@ -366,7 +446,6 @@ export function ConfigPage() {
                       <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Código</th>
                       <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Prefijo</th>
                       <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Nombre</th>
-                      <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider hidden sm:table-cell">Ejemplo</th>
                       <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Estado</th>
                       {canEdit && <th className="text-right px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Acciones</th>}
                     </tr>
@@ -381,11 +460,6 @@ export function ConfigPage() {
                           <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-xs">{tipo.prefix}</span>
                         </td>
                         <td className="px-4 py-3.5 font-medium text-gray-900">{tipo.name}</td>
-                        <td className="px-4 py-3.5 hidden sm:table-cell">
-                          <span className="font-mono text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded border">
-                            {tipo.prefix}-SECTOR-SITIO-001
-                          </span>
-                        </td>
                         <td className="px-4 py-3.5">
                           <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${tipo.isActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
                             {tipo.isActive ? "✓ Activo" : "Inactivo"}
@@ -416,6 +490,170 @@ export function ConfigPage() {
             <span className="font-mono font-bold">[TIPO]-[SECTOR]-[SITIO]-[NNN]</span>.
             El correlativo se incrementa automáticamente por combinación tipo+sector+sitio.
           </div>
+        </div>
+      )}
+
+      {/* ── CATÁLOGOS TAB ── */}
+      {tab === "catalogos" && (
+        <div className="space-y-5">
+          <p className="text-gray-500 text-sm">Administrá las opciones disponibles en los desplegables del formulario de áreas. Los cambios se guardan en el navegador.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+
+            {/* ── Carpetas ── */}
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-gray-50 border-b border-gray-100 px-4 py-3 flex items-center justify-between">
+                <h3 className="font-bold text-gray-800 text-sm">📁 Carpetas / Procesos</h3>
+                <span className="text-xs text-gray-400">{carpetas.length}</span>
+              </div>
+              <ul className="divide-y divide-gray-50">
+                {carpetas.map((c, i) => (
+                  <li key={i} className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 group">
+                    <span className="text-sm text-gray-700">{c}</span>
+                    <button onClick={() => setCarpetas(carpetas.filter((_, j) => j !== i))}
+                      className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 text-xs font-medium transition-all" title="Eliminar">✕</button>
+                  </li>
+                ))}
+              </ul>
+              <div className="px-4 py-3 border-t border-gray-100 flex gap-2">
+                <input value={newCarpeta} onChange={e => setNewCarpeta(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && newCarpeta.trim()) { setCarpetas([...carpetas, newCarpeta.trim()]); setNewCarpeta(""); } }}
+                  placeholder="Nueva carpeta…" className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <button onClick={() => { if(newCarpeta.trim()){ setCarpetas([...carpetas, newCarpeta.trim()]); setNewCarpeta(""); } }}
+                  className="bg-blue-600 text-white text-sm px-3 py-1.5 rounded-lg hover:bg-blue-700 font-medium">+</button>
+              </div>
+            </div>
+
+            {/* ── Sitios ── */}
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-gray-50 border-b border-gray-100 px-4 py-3 flex items-center justify-between">
+                <h3 className="font-bold text-gray-800 text-sm">🏢 Sitios</h3>
+                <span className="text-xs text-gray-400">{sitios.length}</span>
+              </div>
+              <ul className="divide-y divide-gray-50">
+                {sitios.map((s, i) => (
+                  <li key={i} className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 group">
+                    <div>
+                      <span className="text-sm text-gray-700">{s.name}</span>
+                      <span className="ml-2 font-mono text-xs font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">{s.code}</span>
+                    </div>
+                    <button onClick={() => setSitios(sitios.filter((_, j) => j !== i))}
+                      className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 text-xs font-medium transition-all" title="Eliminar">✕</button>
+                  </li>
+                ))}
+              </ul>
+              <div className="px-4 py-3 border-t border-gray-100 space-y-2">
+                <div className="flex gap-2">
+                  <input value={newSitio.name} onChange={e => setNewSitio(v => ({ ...v, name: e.target.value }))}
+                    placeholder="Nombre…" className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <input value={newSitio.code} onChange={e => setNewSitio(v => ({ ...v, code: e.target.value.toUpperCase() }))}
+                    placeholder="Cód" maxLength={5} className="w-16 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono uppercase" />
+                </div>
+                <button onClick={() => { if(newSitio.name.trim() && newSitio.code.trim()){ setSitios([...sitios, { name: newSitio.name.trim(), code: newSitio.code.trim() }]); setNewSitio({ name:"", code:"" }); } }}
+                  className="w-full bg-blue-600 text-white text-sm py-1.5 rounded-lg hover:bg-blue-700 font-medium">+ Agregar sitio</button>
+              </div>
+            </div>
+
+            {/* ── Sectores ── */}
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-gray-50 border-b border-gray-100 px-4 py-3 flex items-center justify-between">
+                <h3 className="font-bold text-gray-800 text-sm">🏷 Sectores / Procesos</h3>
+                <span className="text-xs text-gray-400">{sectores.length}</span>
+              </div>
+              <ul className="divide-y divide-gray-50 max-h-72 overflow-y-auto">
+                {sectores.map((s, i) => (
+                  <li key={i} className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 group">
+                    <div>
+                      <span className="text-sm text-gray-700">{s.name}</span>
+                      <span className="ml-2 font-mono text-xs font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">{s.code}</span>
+                    </div>
+                    <button onClick={() => setSectores(sectores.filter((_, j) => j !== i))}
+                      className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 text-xs font-medium transition-all" title="Eliminar">✕</button>
+                  </li>
+                ))}
+              </ul>
+              <div className="px-4 py-3 border-t border-gray-100 space-y-2">
+                <div className="flex gap-2">
+                  <input value={newSector.name} onChange={e => setNewSector(v => ({ ...v, name: e.target.value }))}
+                    placeholder="Nombre…" className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <input value={newSector.code} onChange={e => setNewSector(v => ({ ...v, code: e.target.value.toUpperCase() }))}
+                    placeholder="Cód" maxLength={8} className="w-16 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono uppercase" />
+                </div>
+                <button onClick={() => { if(newSector.name.trim() && newSector.code.trim()){ setSectores([...sectores, { name: newSector.name.trim(), code: newSector.code.trim() }]); setNewSector({ name:"", code:"" }); } }}
+                  className="w-full bg-blue-600 text-white text-sm py-1.5 rounded-lg hover:bg-blue-700 font-medium">+ Agregar sector</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ── MÓDULOS TAB ── */}
+      {tab === "modulos" && canEdit && (
+        <div className="space-y-4">
+          <p className="text-gray-500 text-sm">
+            Configurá qué secciones son requeridas, opcionales u ocultas para cada tipo de documento. Los cambios se aplican al asistente de redacción.
+          </p>
+          <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+            <table className="w-full text-sm" style={{ minWidth: "860px" }}>
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider" style={{ minWidth: "140px" }}>Tipo</th>
+                  {MODULE_KEYS.map(k => (
+                    <th key={k} className="text-center px-2 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">{MODULE_LABELS[k]}</th>
+                  ))}
+                  <th className="px-4 py-3 text-right text-xs text-gray-400 font-normal">Guardar</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {tipos.filter((t: any) => t.isActive).map((t: any) => {
+                  const cfg = moduleConfigs[t.id] ?? DEFAULT_MOD_CFG[t.code] ?? {};
+                  return (
+                    <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="font-semibold text-gray-800 text-sm">{t.name}</div>
+                        <div className="text-xs font-mono text-gray-400">{t.code}</div>
+                      </td>
+                      {MODULE_KEYS.map(key => {
+                        const val = cfg[key] ?? "hidden";
+                        return (
+                          <td key={key} className="px-2 py-3 text-center">
+                            <select
+                              value={val}
+                              onChange={e => setModuleConfigs(c => ({ ...c, [t.id]: { ...(c[t.id] ?? DEFAULT_MOD_CFG[t.code] ?? {}), [key]: e.target.value } }))}
+                              className={`text-xs px-2 py-1 rounded-lg border font-semibold cursor-pointer ${
+                                val === "required" ? "bg-blue-50 border-blue-200 text-blue-700" :
+                                val === "optional" ? "bg-yellow-50 border-yellow-200 text-yellow-700" :
+                                "bg-gray-50 border-gray-200 text-gray-400"
+                              }`}
+                            >
+                              <option value="required">Requerido</option>
+                              <option value="optional">Opcional</option>
+                              <option value="hidden">Oculto</option>
+                            </select>
+                          </td>
+                        );
+                      })}
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => handleSaveModuleConfig(t.id)}
+                          disabled={savingModuleCfg === t.id}
+                          className="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 font-medium transition-colors"
+                        >
+                          {savingModuleCfg === t.id ? "..." : "💾"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-gray-400">
+            <span className="inline-block w-2 h-2 rounded-full bg-blue-400 mr-1" />Requerido = obligatorio para finalizar el borrador.{" "}
+            <span className="inline-block w-2 h-2 rounded-full bg-yellow-400 mr-1" />Opcional = visible pero no obligatorio.{" "}
+            <span className="inline-block w-2 h-2 rounded-full bg-gray-300 mr-1" />Oculto = no aparece en el asistente.
+          </p>
         </div>
       )}
 

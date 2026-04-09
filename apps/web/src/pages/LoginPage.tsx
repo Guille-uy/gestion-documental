@@ -7,30 +7,15 @@ import { apiService } from "../services/api.js";
 import toast from "react-hot-toast";
 
 const DEMO_USERS: Record<string, { password: string; user: any; token: string }> = {
-  "admin@centenario.net.uy": {
-    password: "Admin@12345",
+  "admin@centenario.local": {
+    password: "Admin@2026!",
     token: "demo-token-admin",
-    user: { id: "1", email: "admin@centenario.net.uy", firstName: "Admin", lastName: "Sistema", role: "ADMIN" },
+    user: { id: "1", email: "admin@centenario.local", firstName: "Admin", lastName: "Centenario", role: "ADMIN" },
   },
-  "owner@centenario.net.uy": {
-    password: "Owner@12345",
-    token: "demo-token-owner",
-    user: { id: "2", email: "owner@centenario.net.uy", firstName: "Propietario", lastName: "Documentos", role: "DOCUMENT_OWNER" },
-  },
-  "reviewer@centenario.net.uy": {
-    password: "Reviewer@12345",
-    token: "demo-token-reviewer",
-    user: { id: "3", email: "reviewer@centenario.net.uy", firstName: "Revisor", lastName: "Calidad", role: "REVIEWER" },
-  },
-  "approver@centenario.net.uy": {
-    password: "Approver@12345",
-    token: "demo-token-approver",
-    user: { id: "4", email: "approver@centenario.net.uy", firstName: "Aprobador", lastName: "Calidad", role: "APPROVER" },
-  },
-  "reader@centenario.net.uy": {
-    password: "Reader@12345",
-    token: "demo-token-reader",
-    user: { id: "5", email: "reader@centenario.net.uy", firstName: "Lector", lastName: "General", role: "READER" },
+  "calidad@centenario.local": {
+    password: "Calidad@2026!",
+    token: "demo-token-calidad",
+    user: { id: "2", email: "calidad@centenario.local", firstName: "Calidad", lastName: "Centenario", role: "QUALITY_MANAGER" },
   },
 };
 
@@ -40,8 +25,8 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
-    email: "admin@centenario.net.uy",
-    password: "Admin@12345",
+    email: "admin@centenario.local",
+    password: "Admin@2026!",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

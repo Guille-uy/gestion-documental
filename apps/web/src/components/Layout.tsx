@@ -72,9 +72,11 @@ export function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuthStore();
   const [unreadCount, setUnreadCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showAdminMenu, setShowAdminMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [darkMode, setDarkMode] = useState(() => typeof window !== "undefined" && localStorage.getItem("theme") === "dark");
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const adminMenuRef = useRef<HTMLDivElement>(null);
   // #1 Global search
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -105,6 +107,9 @@ export function Layout({ children }: LayoutProps) {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setShowDropdown(false);
+      }
+      if (adminMenuRef.current && !adminMenuRef.current.contains(e.target as Node)) {
+        setShowAdminMenu(false);
       }
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setShowSearchDrop(false);
@@ -184,22 +189,22 @@ export function Layout({ children }: LayoutProps) {
           <div className="flex justify-between items-center h-16">
 
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 shrink-0">
+            <Link to="/" className="flex items-center gap-2.5 shrink-0">
               <img src="/logo-centenario.png" alt="Centenario" className="h-9 w-auto" />
-              <div className="hidden sm:block leading-tight">
-                <div className="text-xs font-bold text-gray-900">Sistema de Gestión</div>
-                <div className="text-xs font-bold text-blue-600">Documental</div>
+              <div className="hidden sm:block">
+                <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest leading-none">Plataforma</div>
+                <div className="text-[15px] font-black text-gray-900 leading-snug tracking-tight">Gestión <span className="text-blue-600">Documental</span></div>
               </div>
             </Link>
 
             {user && (
               <>
-                {/* ── Desktop: text + icon links + profile, all in one flex row ── */}
-                <div className="hidden md:flex items-center gap-1">
+                {/* ── Desktop: icon links + profile, text labels only on xl ── */}
+                <div className="hidden lg:flex items-center gap-1">
                   {navLinks.map(({ to, label, badge, icon5 }) => (
-                    <Link key={to} to={to} className={`nav-link${isActive(to) ? " active" : ""}`}>
+                    <Link key={to} to={to} title={label} className={`nav-link${isActive(to) ? " active" : ""}`}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>{icon5.props.children}</svg>
-                      {label}
+                      <span className="hidden xl:inline">{label}</span>
                       {badge != null && badge > 0 && (
                         <span className="ml-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
                           {badge}
@@ -211,12 +216,30 @@ export function Layout({ children }: LayoutProps) {
                   {isAdmin && (
                     <>
                       <span className="nav-sep" />
-                      {adminLinks.map(({ to, label, icon5 }) => (
-                        <Link key={to} to={to} className={`nav-link${isActive(to) ? " active" : ""}`}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>{icon5.props.children}</svg>
-                          {label}
-                        </Link>
-                      ))}
+                      <div className="relative" ref={adminMenuRef}>
+                        <button
+                          onClick={() => setShowAdminMenu(v => !v)}
+                          title="Administración"
+                          className={`nav-link${adminLinks.some(l => isActive(l.to)) ? " active" : ""}`}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                          <span className="hidden xl:inline">Admin</span>
+                          <svg className={`w-3 h-3 transition-transform ${showAdminMenu ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                        {showAdminMenu && (
+                          <div className="absolute left-0 top-full mt-1 w-44 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden py-1">
+                            {adminLinks.map(({ to, label, icon5 }) => (
+                              <Link key={to} to={to} onClick={() => setShowAdminMenu(false)}
+                                className={`flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium transition-colors ${
+                                  isActive(to) ? "bg-blue-50 text-blue-700" : "text-gray-700 hover:bg-gray-50"
+                                }`}>
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="shrink-0">{icon5.props.children}</svg>
+                                {label}
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </>
                   )}
 
@@ -249,7 +272,7 @@ export function Layout({ children }: LayoutProps) {
                         onFocus={() => searchResults.length > 0 && setShowSearchDrop(true)}
                         onKeyDown={e => e.key === "Escape" && (setSearchQuery(""), setShowSearchDrop(false))}
                         placeholder="Buscar documentos..."
-                        className="pl-8 pr-3 py-1.5 w-48 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:w-64 transition-all"
+                        className="pl-8 pr-3 py-1.5 w-36 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:w-52 transition-all"
                       />
                     </div>
                     {showSearchDrop && (
@@ -278,7 +301,7 @@ export function Layout({ children }: LayoutProps) {
                       <span className="w-8 h-8 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
                         {initials}
                       </span>
-                      <div className="hidden md:flex flex-col items-start leading-tight">
+                      <div className="hidden xl:flex flex-col items-start leading-tight">
                         <span className="max-w-[130px] truncate text-sm font-semibold text-gray-800">
                           {user.firstName} {user.lastName}
                         </span>
@@ -335,7 +358,7 @@ export function Layout({ children }: LayoutProps) {
                 </div>{/* end desktop nav */}
 
                 {/* ── Mobile: notification badge + avatar + hamburger ── */}
-                <div className="flex md:hidden items-center gap-2">
+                <div className="flex lg:hidden items-center gap-2">
                   <Link
                     to="/notifications"
                     className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600"

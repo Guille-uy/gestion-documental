@@ -242,6 +242,16 @@ class ApiService {
   bulkDocuments(documentIds: string[], action: string) {
     return this.client.patch("/documents/bulk", { documentIds, action });
   }
+
+  // Wizard: save module content to a document draft
+  updateDocumentContent(documentId: string, content: Record<string, string>) {
+    return this.client.patch(`/documents/${documentId}/content`, { content });
+  }
+
+  // Wizard: get AI-assisted template text for a module
+  aiAssist(params: { module: string; docType: string; title: string; area: string }) {
+    return this.client.post("/documents/ai-assist", params);
+  }
 }
 
 export const apiService = new ApiService();
