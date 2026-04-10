@@ -118,6 +118,7 @@ export function DocumentsListPage() {
   const [filters, setFilters] = useState({ search: "", status: "", area: "", type: "", siteCode: "", sectorCode: "" });
   const [sort, setSort] = useState<{ sortBy: string; sortOrder: "asc" | "desc" }>({ sortBy: "createdAt", sortOrder: "desc" });
   const [sectorMap, setSectorMap] = useState<Record<string, string>>({});
+  const [areaList, setAreaList] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"table" | "cards">("table"); // #9 toggle
   const limit = 20;
 
@@ -127,8 +128,13 @@ export function DocumentsListPage() {
     apiService.getAreas().then(r => {
       const areas: any[] = r.data.data ?? [];
       const map: Record<string, string> = {};
-      areas.forEach((a: any) => { if (a.sectorCode && a.sector) map[a.sectorCode] = a.sector; });
+      const names: string[] = [];
+      areas.forEach((a: any) => {
+        if (a.sectorCode && a.sector) map[a.sectorCode] = a.sector;
+        if (a.name) names.push(a.name);
+      });
       setSectorMap(map);
+      setAreaList(names.sort((a, b) => a.localeCompare(b)));
     }).catch(() => {});
   }, []);
 
@@ -274,27 +280,28 @@ export function DocumentsListPage() {
               className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
-          {/* Status */}
-          <select name="status" value={filters.status} onChange={handleFilterChange}
+          {/* Tipo */}
+          <select name="type" value={filters.type} onChange={handleFilterChange}
             className="py-2 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-            <option value="">Todos los estados</option>
-            <option value="DRAFT">En elaboración</option>
-            <option value="IN_REVIEW">En revisión</option>
-            <option value="APPROVED">Aprobado</option>
-            <option value="PUBLISHED">Vigente</option>
-            <option value="OBSOLETE">Obsoleto</option>
+            <option value="">Todos los tipos</option>
+            <option value="SOP">SOP</option>
+            <option value="POLICY">Política</option>
+            <option value="WI">Inst. Trabajo</option>
+            <option value="FORM">Formulario</option>
+            <option value="RECORD">Registro</option>
           </select>
-          {/* Area */}
+          {/* Carpeta */}
           {isRestricted ? (
             <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-xs font-medium text-blue-700 whitespace-nowrap">
               <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16" /></svg>
               {user?.area}
             </div>
           ) : (
-            <input name="area" value={filters.area} onChange={handleFilterChange}
-              placeholder="Filtrar por área..."
-              className="py-2 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[140px]"
-            />
+            <select name="area" value={filters.area} onChange={handleFilterChange}
+              className="py-2 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              <option value="">Todas las carpetas</option>
+              {areaList.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
           )}
           {/* Sitio */}
           <select name="siteCode" value={filters.siteCode} onChange={handleFilterChange}
@@ -312,15 +319,15 @@ export function DocumentsListPage() {
               <option key={code} value={code}>{name}</option>
             ))}
           </select>
-          {/* Type */}
-          <select name="type" value={filters.type} onChange={handleFilterChange}
+          {/* Estado */}
+          <select name="status" value={filters.status} onChange={handleFilterChange}
             className="py-2 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-            <option value="">Todos los tipos</option>
-            <option value="SOP">SOP</option>
-            <option value="POLICY">Política</option>
-            <option value="WI">Inst. Trabajo</option>
-            <option value="FORM">Formulario</option>
-            <option value="RECORD">Registro</option>
+            <option value="">Todos los estados</option>
+            <option value="DRAFT">En elaboración</option>
+            <option value="IN_REVIEW">En revisión</option>
+            <option value="APPROVED">Aprobado</option>
+            <option value="PUBLISHED">Vigente</option>
+            <option value="OBSOLETE">Obsoleto</option>
           </select>
           {/* Clear */}
           {hasFilters && (
