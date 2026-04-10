@@ -19,7 +19,7 @@ export function ConfigPage() {
   const [editingArea, setEditingArea] = useState<any>(null);
   const [editingTipo, setEditingTipo] = useState<any>(null);
   const [areaForm, setAreaForm] = useState({ name: "", code: "", description: "", folder: "", site: "", siteCode: "", sector: "", sectorCode: "" });
-  const [tipoForm, setTipoForm] = useState({ name: "", code: "", prefix: "", description: "", requiresElaborado: true, requiresRevisado: true, requiresAprobado: true });
+  const [tipoForm, setTipoForm] = useState({ name: "", code: "", prefix: "", description: "", requiresElaborado: true, requiresRevisado: true, requiresAprobado: true, requiresFileUpload: false, acceptedFileTypes: "" });
 
   const areaFormRef = useRef<HTMLFormElement>(null);
 
@@ -144,7 +144,7 @@ export function ConfigPage() {
     e.preventDefault();
     try {
       if (editingTipo) {
-        await apiService.updateDocumentType(editingTipo.id, { name: tipoForm.name, prefix: tipoForm.prefix, description: tipoForm.description, requiresElaborado: tipoForm.requiresElaborado, requiresRevisado: tipoForm.requiresRevisado, requiresAprobado: tipoForm.requiresAprobado });
+        await apiService.updateDocumentType(editingTipo.id, { name: tipoForm.name, prefix: tipoForm.prefix, description: tipoForm.description, requiresElaborado: tipoForm.requiresElaborado, requiresRevisado: tipoForm.requiresRevisado, requiresAprobado: tipoForm.requiresAprobado, requiresFileUpload: tipoForm.requiresFileUpload, acceptedFileTypes: tipoForm.acceptedFileTypes || null });
         toast.success("Tipo actualizado");
       } else {
         await apiService.createDocumentType(tipoForm);
@@ -152,7 +152,7 @@ export function ConfigPage() {
       }
       setShowTipoForm(false);
       setEditingTipo(null);
-      setTipoForm({ name: "", code: "", prefix: "", description: "", requiresElaborado: true, requiresRevisado: true, requiresAprobado: true });
+      setTipoForm({ name: "", code: "", prefix: "", description: "", requiresElaborado: true, requiresRevisado: true, requiresAprobado: true, requiresFileUpload: false, acceptedFileTypes: "" });
       fetchTipos();
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Error al guardar tipo");
@@ -184,7 +184,7 @@ export function ConfigPage() {
 
   const startEditTipo = (tipo: any) => {
     setEditingTipo(tipo);
-    setTipoForm({ name: tipo.name, code: tipo.code, prefix: tipo.prefix, description: tipo.description || "", requiresElaborado: tipo.requiresElaborado !== false, requiresRevisado: tipo.requiresRevisado !== false, requiresAprobado: tipo.requiresAprobado !== false });
+    setTipoForm({ name: tipo.name, code: tipo.code, prefix: tipo.prefix, description: tipo.description || "", requiresElaborado: tipo.requiresElaborado !== false, requiresRevisado: tipo.requiresRevisado !== false, requiresAprobado: tipo.requiresAprobado !== false, requiresFileUpload: tipo.requiresFileUpload === true, acceptedFileTypes: tipo.acceptedFileTypes || "" });
     setShowTipoForm(true);
   };
 
@@ -396,7 +396,7 @@ export function ConfigPage() {
           <div className="flex flex-wrap justify-between items-center gap-2">
             <p className="text-gray-500 text-sm">Los tipos determinan la nomenclatura del código (prefijo) y categorizan los documentos.</p>
             {canEdit && (
-              <Button size="sm" onClick={() => { setEditingTipo(null); setTipoForm({ name: "", code: "", prefix: "", description: "", requiresElaborado: true, requiresRevisado: true, requiresAprobado: true }); setShowTipoForm(!showTipoForm); }}>
+              <Button size="sm" onClick={() => { setEditingTipo(null); setTipoForm({ name: "", code: "", prefix: "", description: "", requiresElaborado: true, requiresRevisado: true, requiresAprobado: true, requiresFileUpload: false, acceptedFileTypes: "" }); setShowTipoForm(!showTipoForm); }}>
                 {showTipoForm && !editingTipo ? "Cancelar" : "+ Nuevo Tipo"}
               </Button>
             )}
@@ -426,6 +426,25 @@ export function ConfigPage() {
                   ))}
                 </div>
               </div>
+              <div className="border-t border-gray-100 pt-4 space-y-3">
+                <p className="text-sm font-medium text-gray-700">Archivo adjunto</p>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" className="w-4 h-4 rounded accent-orange-500" checked={tipoForm.requiresFileUpload}
+                    onChange={e => setTipoForm(f => ({ ...f, requiresFileUpload: e.target.checked, acceptedFileTypes: e.target.checked ? f.acceptedFileTypes : "" }))} />
+                  <span className="text-sm text-gray-700">Requiere subir archivo (no se puede redactar en el editor)</span>
+                </label>
+                {tipoForm.requiresFileUpload && (
+                  <div>
+                    <Input
+                      label="Tipos de archivos aceptados"
+                      value={tipoForm.acceptedFileTypes}
+                      onChange={e => setTipoForm(f => ({ ...f, acceptedFileTypes: e.target.value }))}
+                      placeholder="ej: .pdf,.docx,.doc,.png"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Extensiones separadas por coma. Dejar vacío para aceptar cualquier archivo.</p>
+                  </div>
+                )}
+              </div>
               <div className="flex gap-2">
                 <Button type="submit" size="sm">{editingTipo ? "Actualizar" : "Crear Tipo"}</Button>
                 <button type="button" onClick={() => { setShowTipoForm(false); setEditingTipo(null); }} className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Cancelar</button>
@@ -446,6 +465,7 @@ export function ConfigPage() {
                       <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Código</th>
                       <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Prefijo</th>
                       <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Nombre</th>
+                      <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider hidden sm:table-cell">Archivo</th>
                       <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Estado</th>
                       {canEdit && <th className="text-right px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Acciones</th>}
                     </tr>
@@ -460,6 +480,12 @@ export function ConfigPage() {
                           <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-xs">{tipo.prefix}</span>
                         </td>
                         <td className="px-4 py-3.5 font-medium text-gray-900">{tipo.name}</td>
+                        <td className="px-4 py-3.5 hidden sm:table-cell">
+                          {tipo.requiresFileUpload
+                            ? <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-50 text-orange-700">📎 Archivo</span>
+                            : <span className="text-gray-400 text-xs">Editor</span>
+                          }
+                        </td>
                         <td className="px-4 py-3.5">
                           <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${tipo.isActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
                             {tipo.isActive ? "✓ Activo" : "Inactivo"}

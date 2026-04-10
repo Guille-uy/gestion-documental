@@ -34,6 +34,8 @@ const CreateTypeSchema = z.object({
   requiresElaborado: z.boolean().optional(),
   requiresRevisado: z.boolean().optional(),
   requiresAprobado: z.boolean().optional(),
+  requiresFileUpload: z.boolean().optional(),
+  acceptedFileTypes: z.string().optional(),
 });
 
 const UpdateTypeSchema = z.object({
@@ -44,6 +46,8 @@ const UpdateTypeSchema = z.object({
   requiresElaborado: z.boolean().optional(),
   requiresRevisado: z.boolean().optional(),
   requiresAprobado: z.boolean().optional(),
+  requiresFileUpload: z.boolean().optional(),
+  acceptedFileTypes: z.string().optional().nullable(),
   moduleConfig: z.record(z.string(), z.enum(['required', 'optional', 'hidden'])).optional(),
 });
 

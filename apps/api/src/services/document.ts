@@ -193,10 +193,15 @@ export async function getDocument(documentId: string) {
         select: { id: true, firstName: true, lastName: true, email: true },
       })
     : null;
+  // Fetch type config
+  const typeConfig = document.type
+    ? await prisma.documentTypeConfig.findUnique({ where: { code: document.type } })
+    : null;
 
   const enrichedDoc = {
     ...document,
     _docCreatedByUser: docCreator,
+    typeConfig,
     versions: (document.versions || []).map((v: any) => ({
       ...v,
       _createdByUser: creatorMap[v.createdBy] ?? null,

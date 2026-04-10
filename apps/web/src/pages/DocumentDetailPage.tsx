@@ -10,8 +10,7 @@ import toast from "react-hot-toast";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
-// Tipos que requieren subir un archivo (no pueden redactarse en el editor)
-const UPLOAD_REQUIRED_TYPES = new Set(["DF", "OG", "FT", "AN", "CT"]);
+
 
 /** Render a content value that may be plain markdown or HTML */
 function renderContent(value: string): string {
@@ -564,7 +563,7 @@ export function DocumentDetailPage() {
       <div className="bg-white rounded-lg shadow p-6 no-print">
         <h2 className="font-bold text-gray-900 mb-4">Acciones</h2>
         <div className="flex flex-wrap gap-2">
-          {canEdit && UPLOAD_REQUIRED_TYPES.has(doc?.type) && (
+          {canEdit && doc?.typeConfig?.requiresFileUpload && (
             <Button onClick={toggleUploadForm} size="sm" variant={showUploadForm ? "outline" : "primary"}>
               {showUploadForm ? "Cancelar subida" : tieneArchivo ? "Reemplazar Archivo" : "Subir Archivo"}
             </Button>

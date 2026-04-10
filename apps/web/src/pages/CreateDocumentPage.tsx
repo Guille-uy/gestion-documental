@@ -50,18 +50,6 @@ const FALLBACK_CONFIG: ModuleConfig = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// File-upload document types configuration
-// Solo incluye tipos que NO pueden crearse como texto en el editor de la plataforma
-// ─────────────────────────────────────────────────────────────────────────────
-const FILE_UPLOAD_TYPES: Record<string, { label: string; accept: string; hint: string }> = {
-  DF: { label: "Diagrama de flujo", accept: ".vsdx,.vsd,.pdf,.png,.jpg,.jpeg,.svg,.drawio", hint: "Visio (.vsdx/.vsd), Draw.io, PDF, Imagen (PNG, JPG, SVG)" },
-  OG: { label: "Organigrama", accept: ".vsdx,.vsd,.pdf,.png,.jpg,.jpeg,.svg,.drawio", hint: "Visio (.vsdx/.vsd), Draw.io, PDF, Imagen (PNG, JPG, SVG)" },
-  FT: { label: "Ficha Técnica", accept: ".pdf,.xlsx,.xls,.docx,.doc", hint: "PDF, Excel, Word" },
-  AN: { label: "Anexo", accept: ".pdf,.xlsx,.xls,.docx,.doc,.png,.jpg,.jpeg,.zip", hint: "PDF, Excel, Word, Imagen, ZIP" },
-  CT: { label: "Contrato", accept: ".pdf,.docx,.doc", hint: "PDF, Word" },
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
 // DocRelatedPicker — searchable list of existing documents
 // ─────────────────────────────────────────────────────────────────────────────
 function DocRelatedPicker({
@@ -402,7 +390,9 @@ export function CreateDocumentPage() {
     taRef.current.style.height = taRef.current.scrollHeight + "px";
   }, [step, content]);
 
-  const isFileUploadType = !!FILE_UPLOAD_TYPES[setup.type];
+  const selectedTypeConfig = docTypes.find((t: any) => t.code === setup.type);
+  const isFileUploadType = selectedTypeConfig?.requiresFileUpload === true;
+  const fileUploadAccept = selectedTypeConfig?.acceptedFileTypes || "*";
   const showFileStep = isFileUploadType && !!doc;
   const moduleOffset = showFileStep ? 2 : 1;
   const isFileUploadStep = showFileStep && step === 1;
@@ -833,8 +823,9 @@ export function CreateDocumentPage() {
 
   // ── File upload step ───────────────────────────────────────────────────────────────────
   const renderFileUploadStep = () => {
-    const typeConfig = FILE_UPLOAD_TYPES[setup.type];
-    if (!typeConfig) return null;
+    if (!isFileUploadType) return null;
+    const typeName = selectedTypeConfig?.name ?? setup.type;
+    const acceptHint = fileUploadAccept !== "*" ? fileUploadAccept : "cualquier archivo";
     return (
       <div className="space-y-5">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -842,7 +833,7 @@ export function CreateDocumentPage() {
             <span className="text-2xl mt-0.5">📎</span>
             <div className="flex-1">
               <h2 className="text-lg font-semibold text-gray-800">Cargar archivo</h2>
-              <p className="text-sm text-gray-500 mt-0.5">Formatos admitidos para {typeConfig.label}: {typeConfig.hint}</p>
+              <p className="text-sm text-gray-500 mt-0.5">Formatos admitidos para {typeName}: {acceptHint}</p>
             </div>
           </div>
           <div className="p-6 space-y-4">
@@ -852,9 +843,9 @@ export function CreateDocumentPage() {
               </svg>
               <div className="text-center">
                 <p className="text-sm font-medium text-gray-700">Arrastrá o hacé clic para seleccionar</p>
-                <p className="text-xs text-gray-400 mt-1">{typeConfig.hint}</p>
+                <p className="text-xs text-gray-400 mt-1">{acceptHint}</p>
               </div>
-              <input type="file" accept={typeConfig.accept} className="hidden" onChange={e => setUploadFile(e.target.files?.[0] ?? null)} />
+              <input type="file" accept={fileUploadAccept !== "*" ? fileUploadAccept : undefined} className="hidden" onChange={e => setUploadFile(e.target.files?.[0] ?? null)} />
             </label>
             {uploadFile && (
               <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">

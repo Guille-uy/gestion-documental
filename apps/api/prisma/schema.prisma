@@ -129,11 +129,14 @@ model DocumentTypeConfig {
   description       String?
   isActive          Boolean  @default(true)
   // Flujo de aprobación
-  requiresElaborado Boolean  @default(true)
-  requiresRevisado  Boolean  @default(true)
-  requiresAprobado  Boolean  @default(true)
-  moduleConfig      Json?    // { objetivo: 'required'|'optional'|'hidden', ... }
-  createdAt         DateTime @default(now())
+  requiresElaborado   Boolean  @default(true)
+  requiresRevisado    Boolean  @default(true)
+  requiresAprobado    Boolean  @default(true)
+  // Archivo adjunto
+  requiresFileUpload  Boolean  @default(false)
+  acceptedFileTypes   String?  // ej: ".pdf,.docx,.doc"
+  moduleConfig        Json?    // { objetivo: 'required'|'optional'|'hidden', ... }
+  createdAt           DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   @@map("document_type_configs")
