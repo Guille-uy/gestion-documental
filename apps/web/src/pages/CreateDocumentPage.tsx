@@ -51,18 +51,14 @@ const FALLBACK_CONFIG: ModuleConfig = {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // File-upload document types configuration
+// Solo incluye tipos que NO pueden crearse como texto en el editor de la plataforma
 // ─────────────────────────────────────────────────────────────────────────────
 const FILE_UPLOAD_TYPES: Record<string, { label: string; accept: string; hint: string }> = {
-  FT: { label: "Flujograma", accept: ".vsdx,.vsd,.pdf,.png,.jpg,.jpeg,.svg", hint: "Visio (.vsdx/.vsd), PDF, Imagen (PNG, JPG, SVG)" },
-  DF: { label: "Diagrama de flujo", accept: ".vsdx,.vsd,.pdf,.png,.jpg,.jpeg,.svg", hint: "Visio, PDF, Imagen" },
-  AR: { label: "Acta / Registro", accept: ".xlsx,.xls,.docx,.doc,.pdf", hint: "Excel, Word, PDF" },
-  ES: { label: "Estándar", accept: ".pdf,.docx,.doc", hint: "PDF, Word" },
-  CE: { label: "Certificado", accept: ".pdf,.docx,.doc,.png,.jpg,.jpeg", hint: "PDF, Word, Imagen" },
-  CI: { label: "Circular / Comunicado", accept: ".pdf,.docx,.doc", hint: "PDF, Word" },
-  RG: { label: "Registro", accept: ".xlsx,.xls,.docx,.doc,.pdf", hint: "Excel, Word, PDF" },
-  LI: { label: "Lista / Listado", accept: ".xlsx,.xls,.docx,.doc,.pdf", hint: "Excel, Word, PDF" },
-  PL: { label: "Planilla / Formulario", accept: ".xlsx,.xls,.docx,.doc,.pdf", hint: "Excel, Word, PDF" },
-  IN: { label: "Informe", accept: ".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt", hint: "PDF, Word, Excel, PowerPoint" },
+  DF: { label: "Diagrama de flujo", accept: ".vsdx,.vsd,.pdf,.png,.jpg,.jpeg,.svg,.drawio", hint: "Visio (.vsdx/.vsd), Draw.io, PDF, Imagen (PNG, JPG, SVG)" },
+  OG: { label: "Organigrama", accept: ".vsdx,.vsd,.pdf,.png,.jpg,.jpeg,.svg,.drawio", hint: "Visio (.vsdx/.vsd), Draw.io, PDF, Imagen (PNG, JPG, SVG)" },
+  FT: { label: "Ficha Técnica", accept: ".pdf,.xlsx,.xls,.docx,.doc", hint: "PDF, Excel, Word" },
+  AN: { label: "Anexo", accept: ".pdf,.xlsx,.xls,.docx,.doc,.png,.jpg,.jpeg,.zip", hint: "PDF, Excel, Word, Imagen, ZIP" },
+  CT: { label: "Contrato", accept: ".pdf,.docx,.doc", hint: "PDF, Word" },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
