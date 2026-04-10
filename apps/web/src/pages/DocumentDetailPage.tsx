@@ -360,7 +360,7 @@ export function DocumentDetailPage() {
       <style>{`
         @page {
           size: A4;
-          margin: 0.3cm 1.5cm 2cm;
+          margin: 0.7cm 1.5cm 2cm;
         }
         @page {
           @bottom-left {
@@ -502,7 +502,7 @@ export function DocumentDetailPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="bg-white rounded-lg shadow p-6 grid grid-cols-2 md:grid-cols-4 gap-6 no-print">
         <InfoItem label="Tipo" value={doc.type} />
         <InfoItem label="Área" value={doc.area} />
         <InfoItem label="Versión" value={doc.currentVersionLabel} />
@@ -520,7 +520,7 @@ export function DocumentDetailPage() {
       </div>
 
       {doc.description && (
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-6 no-print">
           <h2 className="font-bold text-gray-900 mb-2">Descripción</h2>
           <p className="text-gray-600">{doc.description}</p>
         </div>
