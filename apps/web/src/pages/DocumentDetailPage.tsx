@@ -358,12 +358,29 @@ export function DocumentDetailPage() {
     <div className="space-y-7">
       {/* ── Print styles ── */}
       <style>{`
+        @page {
+          size: A4;
+          margin: 2.8cm 1.5cm 2cm;
+        }
+        @page {
+          @bottom-left {
+            content: "Gestión Documental — Centenario";
+            font-size: 8pt;
+            color: #94a3b8;
+            font-family: Arial, sans-serif;
+          }
+          @bottom-right {
+            content: "Página " counter(page) " de " counter(pages);
+            font-size: 8pt;
+            color: #94a3b8;
+            font-family: Arial, sans-serif;
+          }
+        }
         @media print {
-          @page { size: A4; margin: 0; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           body * { visibility: hidden !important; }
           #doc-print-area, #doc-print-area * { visibility: visible !important; }
-          #doc-print-area { position: absolute; left: 0; top: 0; right: 0; padding: 1.8cm 1.5cm; box-sizing: border-box; }
+          #doc-print-area { position: absolute; left: 0; top: 0; right: 0; padding: 0; box-sizing: border-box; }
           .no-print { display: none !important; }
           .shadow, .shadow-md, .shadow-lg { box-shadow: none !important; }
           .rounded-lg, .rounded { border-radius: 0 !important; }

@@ -115,7 +115,7 @@ export function DocumentsListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [filters, setFilters] = useState({ search: "", status: "", area: "", type: "" });
+  const [filters, setFilters] = useState({ search: "", status: "", area: "", type: "", siteCode: "", sectorCode: "" });
   const [sort, setSort] = useState<{ sortBy: string; sortOrder: "asc" | "desc" }>({ sortBy: "createdAt", sortOrder: "desc" });
   const [sectorMap, setSectorMap] = useState<Record<string, string>>({});
   const [viewMode, setViewMode] = useState<"table" | "cards">("table"); // #9 toggle
@@ -133,15 +133,22 @@ export function DocumentsListPage() {
   }, []);
 
   const fetchDocuments = async () => {
-    try {
-      setIsLoading(true);
-      const response = await apiService.listDocuments({ page, limit, ...filters, sortBy: sort.sortBy, sortOrder: sort.sortOrder });
-      setDocuments(response.data.data.items);
-      setTotal(response.data.data.total);
-    } catch {
-      toast.error("Error al cargar documentos");
-    } finally {
-      setIsLoading(false);
+    setIsLoading(true);
+    for (let attempt = 0; attempt <= 2; attempt++) {
+      try {
+        const response = await apiService.listDocuments({ page, limit, ...filters, sortBy: sort.sortBy, sortOrder: sort.sortOrder });
+        setDocuments(response.data.data.items);
+        setTotal(response.data.data.total);
+        setIsLoading(false);
+        return;
+      } catch {
+        if (attempt < 2) {
+          await new Promise(r => setTimeout(r, 2500 * (attempt + 1)));
+        } else {
+          toast.error("Error al cargar documentos");
+          setIsLoading(false);
+        }
+      }
     }
   };
 
@@ -152,7 +159,7 @@ export function DocumentsListPage() {
   };
 
   const clearFilters = () => {
-    setFilters({ search: "", status: "", area: "", type: "" });
+    setFilters({ search: "", status: "", area: "", type: "", siteCode: "", sectorCode: "" });
     setPage(1);
   };
 
@@ -183,7 +190,7 @@ export function DocumentsListPage() {
   const isAdmin = !!user && PRIVILEGED_ROLES.includes(user.role);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
-  const hasFilters = !!(filters.search || filters.status || filters.area || filters.type);
+  const hasFilters = !!(filters.search || filters.status || filters.area || filters.type || filters.siteCode || filters.sectorCode);
   const totalPages = Math.ceil(total / limit);
 
   const toggleSelect = (id: string) => {
@@ -289,6 +296,22 @@ export function DocumentsListPage() {
               className="py-2 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[140px]"
             />
           )}
+          {/* Sitio */}
+          <select name="siteCode" value={filters.siteCode} onChange={handleFilterChange}
+            className="py-2 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+            <option value="">Todos los sitios</option>
+            {Object.entries(SITE_LABELS).map(([code, label]) => (
+              <option key={code} value={code}>{label}</option>
+            ))}
+          </select>
+          {/* Sector */}
+          <select name="sectorCode" value={filters.sectorCode} onChange={handleFilterChange}
+            className="py-2 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+            <option value="">Todos los sectores</option>
+            {Object.entries(sectorMap).sort((a,b)=>a[1].localeCompare(b[1])).map(([code, name]) => (
+              <option key={code} value={code}>{name}</option>
+            ))}
+          </select>
           {/* Type */}
           <select name="type" value={filters.type} onChange={handleFilterChange}
             className="py-2 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">

@@ -582,6 +582,8 @@ export async function listDocuments(
     area?: string;
     type?: string;
     search?: string;
+    siteCode?: string;
+    sectorCode?: string;
   },
   sort?: { sortBy?: string; sortOrder?: "asc" | "desc" }
 ) {
@@ -598,6 +600,12 @@ export async function listDocuments(
   if (filters?.type) {
     where.type = filters.type;
   }
+  if (filters?.siteCode) {
+    where.siteCode = filters.siteCode;
+  }
+  if (filters?.sectorCode) {
+    where.sectorCode = filters.sectorCode;
+  }
   if (filters?.search) {
     where.OR = [
       { code: { contains: filters.search, mode: "insensitive" } },
@@ -605,7 +613,7 @@ export async function listDocuments(
     ];
   }
 
-  const SORTABLE = ["createdAt", "updatedAt", "title", "code", "area", "nextReviewDate"];
+  const SORTABLE = ["createdAt", "updatedAt", "title", "code", "area", "nextReviewDate", "publishedAt"];
   const sortField = SORTABLE.includes(sort?.sortBy ?? "") ? sort!.sortBy! : "createdAt";
   const sortOrder = sort?.sortOrder === "asc" ? "asc" : "desc";
 

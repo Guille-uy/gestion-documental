@@ -232,11 +232,15 @@ export const listDocumentsHandler = asyncHandler(
       area?: string;
       type?: string;
       search?: string;
+      siteCode?: string;
+      sectorCode?: string;
     } = {
       status: req.query.status as string | undefined,
       area: req.query.area as string | undefined,
       type: req.query.type as string | undefined,
       search: req.query.search as string | undefined,
+      siteCode: req.query.siteCode as string | undefined,
+      sectorCode: req.query.sectorCode as string | undefined,
     };
 
     // Area-based access control:
