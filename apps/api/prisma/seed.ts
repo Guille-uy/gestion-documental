@@ -142,6 +142,35 @@ async function main() {
   });
   console.log("✓ Quality Manager:", qm.email);
 
+  // ── Documento de prueba de calendario ─────────────────────────────────
+  // Aparece en el calendario porque está PUBLISHED y tiene nextReviewDate configurada.
+  const reviewDate = new Date("2026-04-10T12:00:00.000Z");
+  await prisma.document.upsert({
+    where: { code: "PR-GD-CO-CAL01" },
+    update: { status: "PUBLISHED", publishedAt: reviewDate, nextReviewDate: reviewDate, updatedBy: adminUser.id },
+    create: {
+      code:                "PR-GD-CO-CAL01",
+      title:               "Revisión periódica del sistema documental — PRUEBA",
+      description:         "Documento de prueba para validar la funcionalidad del calendario de revisiones.",
+      type:                "PR",
+      area:                "Gestión documental",
+      status:              "PUBLISHED",
+      currentVersionLabel: "v1.0",
+      siteCode:            "CO",
+      sectorCode:          "GD",
+      publishedAt:         reviewDate,
+      nextReviewDate:      reviewDate,
+      createdBy:           adminUser.id,
+      updatedBy:           adminUser.id,
+      content: {
+        objetivo: "Verificar el correcto funcionamiento del calendario de revisiones documentales.",
+        alcance:  "Aplica únicamente como prueba de la funcionalidad del calendario.",
+        desarrollo: "Documento de prueba creado automáticamente por el seed. Puede eliminarse una vez validada la funcionalidad.",
+      },
+    },
+  });
+  console.log("✓ Documento de prueba de calendario: PR-GD-CO-CAL01");
+
   console.log("✅ Seed completado exitosamente!");
 }
 
