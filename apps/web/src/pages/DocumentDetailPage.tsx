@@ -305,7 +305,7 @@ export function DocumentDetailPage() {
   const tieneArchivo = !!doc.googleDriveFileId;
   const hasModuleContent = doc.content && typeof doc.content === "object" &&
     Object.values(doc.content as Record<string, string>).some(v => typeof v === "string" && v.replace(/<[^>]+>/g, "").trim().length > 0);
-  const canEdit = doc.status === "DRAFT" && doc.createdBy === user?.id;
+  const canEdit = (doc.status === "DRAFT" || doc.status === "IN_REVIEW") && doc.createdBy === user?.id;
   const canSubmitForReview = doc.status === "DRAFT" && doc.createdBy === user?.id && (tieneArchivo || hasModuleContent);
   const canReview = (user?.role === "REVIEWER" || user?.role === "APPROVER" || user?.role === "ADMIN") && doc.status === "IN_REVIEW";
   const canPublicar = (user?.role === "APPROVER" || user?.role === "ADMIN" || user?.role === "QUALITY_MANAGER") && doc.status === "IN_REVIEW" && doc.reviewTasks?.length > 0 && doc.reviewTasks?.every((t: any) => t.status !== "PENDING");
@@ -359,11 +359,11 @@ export function DocumentDetailPage() {
       {/* ── Print styles ── */}
       <style>{`
         @media print {
-          @page { size: A4; margin: 1.8cm 1.5cm; }
+          @page { size: A4; margin: 0; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           body * { visibility: hidden !important; }
           #doc-print-area, #doc-print-area * { visibility: visible !important; }
-          #doc-print-area { position: absolute; left: 0; top: 0; right: 0; }
+          #doc-print-area { position: absolute; left: 0; top: 0; right: 0; padding: 1.8cm 1.5cm; box-sizing: border-box; }
           .no-print { display: none !important; }
           .shadow, .shadow-md, .shadow-lg { box-shadow: none !important; }
           .rounded-lg, .rounded { border-radius: 0 !important; }
@@ -387,6 +387,9 @@ export function DocumentDetailPage() {
             letter-spacing: 0.05em;
           }
         }
+        .prose table { border-collapse: collapse; width: 100%; }
+        .prose table th, .prose table td { border: 1px solid #e2e8f0; padding: 6px 10px; }
+        .prose table thead tr, .prose table th { background-color: #f8fafc; }
       `}</style>
 
       {/* ── Printable area ── */}
@@ -477,6 +480,10 @@ export function DocumentDetailPage() {
         <InfoItem label="Área" value={doc.area} />
         <InfoItem label="Versión" value={doc.currentVersionLabel} />
         <InfoItem label="Creado" value={formatDistanceToNow(new Date(doc.createdAt), { addSuffix: true, locale: es })} />
+        <InfoItem label="Última modificación" value={formatDistanceToNow(new Date(doc.updatedAt), { addSuffix: true, locale: es })} />
+        {doc.publishedAt && (
+          <InfoItem label="Vigencia desde" value={format(new Date(doc.publishedAt), "dd/MM/yyyy")} />
+        )}
         {doc.nextReviewDate && (
           <InfoItem label="Próxima revisión" value={format(new Date(doc.nextReviewDate), "dd/MM/yyyy")} />
         )}

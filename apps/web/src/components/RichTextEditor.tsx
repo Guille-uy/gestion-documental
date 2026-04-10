@@ -142,8 +142,51 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(
         .run();
     };
 
+    const insertParagraphBeforeTable = () => {
+      const { state, view } = editor;
+      const { $from } = state.selection;
+      let depth = $from.depth;
+      while (depth > 0) {
+        if ($from.node(depth).type.name === "table") {
+          const pos = $from.before(depth);
+          const tr = state.tr.insert(pos, state.schema.nodes.paragraph.create());
+          view.dispatch(tr);
+          editor.commands.setTextSelection(pos + 1);
+          return;
+        }
+        depth--;
+      }
+    };
+
+    const insertParagraphAfterTable = () => {
+      const { state, view } = editor;
+      const { $from } = state.selection;
+      let depth = $from.depth;
+      while (depth > 0) {
+        if ($from.node(depth).type.name === "table") {
+          const pos = $from.after(depth);
+          const tr = state.tr.insert(pos, state.schema.nodes.paragraph.create());
+          view.dispatch(tr);
+          editor.commands.setTextSelection(pos + 1);
+          return;
+        }
+        depth--;
+      }
+    };
+
     return (
       <div className="border border-slate-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 bg-white">
+        <style>{`
+          .ProseMirror table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+          .ProseMirror table th, .ProseMirror table td { border: 1px solid #cbd5e1; padding: 6px 10px; min-width: 60px; position: relative; }
+          .ProseMirror table th { background: #f8fafc; font-weight: 600; }
+          .ProseMirror table .selectedCell:after { position: absolute; content: ""; left: 0; right: 0; top: 0; bottom: 0; background: rgba(200,225,255,0.4); pointer-events: none; z-index: 2; }
+          .ProseMirror .tableWrapper { overflow-x: auto; }
+          .ProseMirror-gapcursor { display: none; pointer-events: none; position: absolute; }
+          .ProseMirror-gapcursor:after { content: ""; display: block; position: absolute; top: -2px; width: 20px; border-top: 1px solid black; animation: ProseMirror-cursor-blink 1.1s steps(2, start) infinite; }
+          .ProseMirror-focused .ProseMirror-gapcursor { display: block; }
+          @keyframes ProseMirror-cursor-blink { to { visibility: hidden; } }
+        `}</style>
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-0.5 px-2 py-2 border-b border-slate-200 bg-slate-50">
           {/* Undo / Redo */}
@@ -222,6 +265,12 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(
           {editor.isActive("table") && (
             <>
               <Divider />
+              <ToolbarBtn title="Insertar párrafo antes de la tabla" onClick={insertParagraphBeforeTable}>
+                <span className="text-xs">↑ Antes</span>
+              </ToolbarBtn>
+              <ToolbarBtn title="Insertar párrafo después de la tabla" onClick={insertParagraphAfterTable}>
+                <span className="text-xs">↓ Después</span>
+              </ToolbarBtn>
               <ToolbarBtn title="Agregar columna a la derecha" onClick={() => editor.chain().focus().addColumnAfter().run()}>
                 <span className="text-xs">+Col</span>
               </ToolbarBtn>
