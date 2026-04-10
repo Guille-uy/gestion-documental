@@ -360,10 +360,7 @@ export function DocumentDetailPage() {
       <style>{`
         @page {
           size: A4;
-          margin: 1cm 1.5cm 2cm;
-        }
-        @page :first {
-          margin-top: 0;
+          margin: 0.3cm 1.5cm 2cm;
         }
         @page {
           @bottom-left {
@@ -380,10 +377,13 @@ export function DocumentDetailPage() {
           }
         }
         @media print {
+          /* Remove layout chrome so #doc-print-area starts at top of content area */
+          header { display: none !important; }
+          main { padding-top: 0 !important; padding-bottom: 0 !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           body * { visibility: hidden !important; }
           #doc-print-area, #doc-print-area * { visibility: visible !important; }
-          #doc-print-area { position: absolute; left: 0; top: 0; right: 0; padding-top: 1cm; box-sizing: border-box; }
+          #doc-print-area { position: static; margin: 0 !important; padding-top: 0.8cm; box-sizing: border-box; }
           .no-print { display: none !important; }
           .shadow, .shadow-md, .shadow-lg { box-shadow: none !important; }
           .rounded-lg, .rounded { border-radius: 0 !important; }
@@ -795,11 +795,11 @@ export function DocumentDetailPage() {
           />
           <div>
             <h2 className="font-bold text-gray-900 mb-1">Código QR</h2>
-            <p className="text-sm text-gray-500 mb-2">Escánealo para acceder a este documento directamente.</p>
+            <p className="text-sm text-gray-500 mb-2 no-print">Escánealo para acceder a este documento directamente.</p>
             <a
               href={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(docUrl)}`}
               download={`QR_${doc.code}.png`}
-              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+              className="text-xs text-blue-600 hover:text-blue-800 font-medium no-print"
               target="_blank" rel="noopener noreferrer"
             >
               Descargar QR ↓
