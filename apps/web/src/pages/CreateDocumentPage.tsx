@@ -49,6 +49,253 @@ const FALLBACK_CONFIG: ModuleConfig = {
   docsRelacionados:"optional", descripcion:"required", controlCambios:"required",
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// File-upload document types configuration
+// ─────────────────────────────────────────────────────────────────────────────
+const FILE_UPLOAD_TYPES: Record<string, { label: string; accept: string; hint: string }> = {
+  FT: { label: "Flujograma", accept: ".vsdx,.vsd,.pdf,.png,.jpg,.jpeg,.svg", hint: "Visio (.vsdx/.vsd), PDF, Imagen (PNG, JPG, SVG)" },
+  DF: { label: "Diagrama de flujo", accept: ".vsdx,.vsd,.pdf,.png,.jpg,.jpeg,.svg", hint: "Visio, PDF, Imagen" },
+  AR: { label: "Acta / Registro", accept: ".xlsx,.xls,.docx,.doc,.pdf", hint: "Excel, Word, PDF" },
+  ES: { label: "Estándar", accept: ".pdf,.docx,.doc", hint: "PDF, Word" },
+  CE: { label: "Certificado", accept: ".pdf,.docx,.doc,.png,.jpg,.jpeg", hint: "PDF, Word, Imagen" },
+  CI: { label: "Circular / Comunicado", accept: ".pdf,.docx,.doc", hint: "PDF, Word" },
+  RG: { label: "Registro", accept: ".xlsx,.xls,.docx,.doc,.pdf", hint: "Excel, Word, PDF" },
+  LI: { label: "Lista / Listado", accept: ".xlsx,.xls,.docx,.doc,.pdf", hint: "Excel, Word, PDF" },
+  PL: { label: "Planilla / Formulario", accept: ".xlsx,.xls,.docx,.doc,.pdf", hint: "Excel, Word, PDF" },
+  IN: { label: "Informe", accept: ".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt", hint: "PDF, Word, Excel, PowerPoint" },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DocRelatedPicker — searchable list of existing documents
+// ─────────────────────────────────────────────────────────────────────────────
+function DocRelatedPicker({
+  allDocs,
+  currentDocId,
+  onChange,
+}: {
+  allDocs: any[];
+  currentDocId?: string;
+  onChange: (html: string) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<string[]>([]);
+
+  const filtered = allDocs
+    .filter(d => d.id !== currentDocId && d.status !== "OBSOLETE")
+    .filter(d =>
+      !search ||
+      d.title?.toLowerCase().includes(search.toLowerCase()) ||
+      (d.code ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (d.type ?? "").toLowerCase().includes(search.toLowerCase())
+    );
+
+  const serialize = (ids: string[]) => {
+    const sel = allDocs.filter(d => ids.includes(d.id));
+    if (!sel.length) return "";
+    const rows = sel.map(d =>
+      `<tr><td>${d.code ?? "—"}</td><td>${d.title}</td><td>${d.type ?? "—"}</td><td>${d.area ?? "—"}</td></tr>`
+    ).join("");
+    return `<table><thead><tr><th>Código</th><th>Título</th><th>Tipo</th><th>Área</th></tr></thead><tbody>${rows}</tbody></table>`;
+  };
+
+  const toggle = (id: string) => {
+    setSelected(prev => {
+      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      onChange(serialize(next));
+      return next;
+    });
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="relative">
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar por código, título o tipo..."
+          className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <svg className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+      <div className="max-h-72 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
+        {filtered.length === 0 && (
+          <p className="text-center text-gray-400 text-sm py-8">
+            {allDocs.length === 0 ? "Cargando documentos..." : "No se encontraron documentos"}
+          </p>
+        )}
+        {filtered.map(d => (
+          <label key={d.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 cursor-pointer transition-colors">
+            <input
+              type="checkbox"
+              checked={selected.includes(d.id)}
+              onChange={() => toggle(d.id)}
+              className="w-4 h-4 rounded text-blue-600"
+            />
+            <div className="flex-1 min-w-0">
+              <span className="font-mono text-xs text-gray-500 mr-2">{d.code ?? "—"}</span>
+              <span className="text-sm text-gray-800 font-medium">{d.title}</span>
+            </div>
+            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded flex-shrink-0">{d.type}</span>
+          </label>
+        ))}
+      </div>
+      {selected.length > 0 ? (
+        <p className="text-sm text-green-700 font-medium">
+          ✓ {selected.length} documento{selected.length > 1 ? "s" : ""} seleccionado{selected.length > 1 ? "s" : ""}
+        </p>
+      ) : (
+        <p className="text-xs text-gray-400">Seleccioná los documentos del sistema que se relacionan con este.</p>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ControlCambiosForm — structured change-log form
+// ─────────────────────────────────────────────────────────────────────────────
+function ControlCambiosForm({
+  docInfo,
+  currentUser,
+  allUsers,
+  onChange,
+}: {
+  docInfo: any;
+  currentUser: any;
+  allUsers: any[];
+  onChange: (html: string) => void;
+}) {
+  const today = new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const authorName = currentUser ? `${currentUser.firstName} ${currentUser.lastName}`.trim() : "";
+
+  type ChangeRow = {
+    version: string; fecha: string; descripcion: string;
+    autor: string; revisorId: string; aprobadorId: string;
+  };
+
+  const [rows, setRows] = useState<ChangeRow[]>([{
+    version: docInfo?.currentVersionLabel ?? "v1.0",
+    fecha: today,
+    descripcion: "Versión inicial del documento.",
+    autor: authorName,
+    revisorId: "",
+    aprobadorId: "",
+  }]);
+
+  const reviewers = allUsers.filter(u =>
+    ["REVIEWER", "APPROVER", "ADMIN", "QUALITY_MANAGER", "DOCUMENT_OWNER"].includes(u.role ?? "")
+  );
+
+  const toHtml = (r: ChangeRow[]) => {
+    const cols = "<th>Versión</th><th>Fecha</th><th>Descripción</th><th>Elaborado por</th><th>Revisado por</th><th>Aprobado por</th>";
+    const trs = r.map(row => {
+      const rev = allUsers.find(u => u.id === row.revisorId);
+      const apr = allUsers.find(u => u.id === row.aprobadorId);
+      return `<tr><td>${row.version}</td><td>${row.fecha}</td><td>${row.descripcion}</td><td>${row.autor}</td><td>${rev ? `${rev.firstName} ${rev.lastName}` : "—"}</td><td>${apr ? `${apr.firstName} ${apr.lastName}` : "—"}</td></tr>`;
+    }).join("");
+    return `<table><thead><tr>${cols}</tr></thead><tbody>${trs}</tbody></table>`;
+  };
+
+  useEffect(() => { onChange(toHtml(rows)); }, []);
+
+  const updateRow = (i: number, field: keyof ChangeRow, val: string) => {
+    setRows(prev => {
+      const next = prev.map((r, idx) => idx === i ? { ...r, [field]: val } : r);
+      onChange(toHtml(next));
+      return next;
+    });
+  };
+
+  const addRow = () => {
+    setRows(prev => {
+      const next = [...prev, {
+        version: `v${prev.length + 1}.0`,
+        fecha: today,
+        descripcion: "",
+        autor: authorName,
+        revisorId: "",
+        aprobadorId: "",
+      }];
+      onChange(toHtml(next));
+      return next;
+    });
+  };
+
+  const removeRow = (i: number) => {
+    if (rows.length === 1) return;
+    setRows(prev => {
+      const next = prev.filter((_, idx) => idx !== i);
+      onChange(toHtml(next));
+      return next;
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 text-xs bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 text-blue-700">
+        <span>📋</span>
+        <span>Código: <strong className="font-mono">{docInfo?.code ?? "—"}</strong> · Versión actual: <strong>{docInfo?.currentVersionLabel ?? "—"}</strong> · Versión y codificación son generados automáticamente y no son editables.</span>
+      </div>
+      {rows.map((row, i) => (
+        <div key={i} className="border border-gray-200 rounded-lg overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-200">
+            <span className="text-sm font-semibold text-gray-700">Entrada #{i + 1}</span>
+            {i > 0 && (
+              <button type="button" onClick={() => removeRow(i)} className="ml-auto text-xs text-red-500 hover:text-red-700">Eliminar</button>
+            )}
+          </div>
+          <div className="p-4 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Versión</label>
+                <input value={row.version} readOnly className="w-full px-2.5 py-1.5 border border-gray-200 rounded text-sm bg-gray-50 font-mono cursor-not-allowed text-gray-500" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Fecha del cambio</label>
+                <input type="text" value={row.fecha} onChange={e => updateRow(i, "fecha", e.target.value)}
+                  className="w-full px-2.5 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Descripción del cambio</label>
+              <textarea rows={2} value={row.descripcion} onChange={e => updateRow(i, "descripcion", e.target.value)}
+                className="w-full px-2.5 py-1.5 border border-gray-300 rounded text-sm resize-none focus:outline-none focus:ring-1 focus:ring-blue-400" />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Elaborado por</label>
+                <input value={row.autor} readOnly className="w-full px-2.5 py-1.5 border border-gray-200 rounded text-sm bg-gray-50 cursor-not-allowed text-gray-500" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Revisado por</label>
+                <select value={row.revisorId} onChange={e => updateRow(i, "revisorId", e.target.value)}
+                  className="w-full px-2.5 py-1.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
+                  <option value="">— Seleccionar —</option>
+                  {reviewers.map(u => <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Aprobado por</label>
+                <select value={row.aprobadorId} onChange={e => updateRow(i, "aprobadorId", e.target.value)}
+                  className="w-full px-2.5 py-1.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
+                  <option value="">— Seleccionar —</option>
+                  {reviewers.map(u => <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+      <button type="button" onClick={addRow}
+        className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium">
+        <span className="text-lg leading-none">+</span> Agregar otra entrada al historial
+      </button>
+    </div>
+  );
+}
+
 export function CreateDocumentPage() {
   const { draftId } = useParams<{ draftId?: string }>();
   const navigate = useNavigate();
@@ -75,6 +322,14 @@ export function CreateDocumentPage() {
   const [activeModules, setActiveModules] = useState<Array<{ key: string; label: string; icon: string; hint: string }>>([]);
   const [saving, setSaving] = useState(false);
 
+  // Extra data for special modules
+  const [allDocs, setAllDocs] = useState<any[]>([]);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+
+  // File-upload step
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+
   // AI assist
   const [ai, setAi] = useState({ show: false, loading: false, suggestion: "", isImprovement: false });
 
@@ -88,11 +343,18 @@ export function CreateDocumentPage() {
 
   const loadCatalog = () => {
     setConfigError(false);
-    Promise.all([apiService.getAreas(), apiService.getDocumentTypes()]).then(([aRes, tRes]) => {
+    Promise.all([
+      apiService.getAreas(),
+      apiService.getDocumentTypes(),
+      apiService.listDocuments({ limit: 150, status: "PUBLISHED,IN_REVIEW,DRAFT" }),
+      apiService.getUsers(1, 150),
+    ]).then(([aRes, tRes, dRes, uRes]) => {
       const aList: any[] = aRes.data.data ?? [];
       const tList: any[] = tRes.data.data ?? [];
       setAreas(aList);
       setDocTypes(tList);
+      setAllDocs(dRes.data.data?.items ?? dRes.data.data ?? []);
+      setAllUsers(uRes.data.data?.items ?? []);
       if (!draftId) {
         const defaultType = tList[0]?.code ?? "";
         const defaultArea = isRestricted && user?.area ? user.area : aList[0]?.name ?? "";
@@ -144,9 +406,13 @@ export function CreateDocumentPage() {
     taRef.current.style.height = taRef.current.scrollHeight + "px";
   }, [step, content]);
 
-  const currentModule = (step >= 1 && step <= activeModules.length) ? activeModules[step - 1] : null;
-  const isReviewStep = step === activeModules.length + 1;
-  const allSteps = ["Configuración", ...activeModules.map((m: any) => m.label), "Revisión"];
+  const isFileUploadType = !!FILE_UPLOAD_TYPES[setup.type];
+  const showFileStep = isFileUploadType && !!doc;
+  const moduleOffset = showFileStep ? 2 : 1;
+  const isFileUploadStep = showFileStep && step === 1;
+  const currentModule = !isFileUploadStep && step >= moduleOffset && step < moduleOffset + activeModules.length ? activeModules[step - moduleOffset] : null;
+  const isReviewStep = step === moduleOffset + activeModules.length;
+  const allSteps = ["Configuración", ...(showFileStep ? ["📎 Cargar archivo"] : []), ...activeModules.map((m: any) => m.label), "Revisión"];
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleSetupChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -196,22 +462,36 @@ export function CreateDocumentPage() {
     try { await saveContent(); toast.success("Borrador guardado"); } catch {}
   };
 
+  const handleUploadFileInWizard = async () => {
+    if (!uploadFile || !doc) return;
+    setUploadingFile(true);
+    try {
+      await apiService.uploadFile(doc.id, uploadFile);
+      toast.success("Archivo subido correctamente");
+      setUploadFile(null);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error ?? "Error al subir el archivo");
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
   const handleNext = async () => {
     const key = currentModule?.key as ModuleKey | undefined;
-    const plainText = content[key]?.replace(/<[^>]+>/g, "").trim() ?? "";
+    const plainText = key ? (content[key]?.replace(/<[^>]+>/g, "").trim() ?? "") : "";
     if (key && moduleCfg[key] === "required" && !plainText) {
       toast.error("Este módulo es requerido — completá el contenido antes de continuar"); return;
     }
     try {
       await saveContent();
-      setAi({ show: false, loading: false, suggestion: "" });
+      setAi({ show: false, loading: false, suggestion: "", isImprovement: false });
       setStep(s => s + 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {}
   };
 
   const handlePrev = () => {
-    setAi({ show: false, loading: false, suggestion: "" });
+    setAi({ show: false, loading: false, suggestion: "", isImprovement: false });
     setStep(s => Math.max(0, s - 1));
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -390,8 +670,9 @@ export function CreateDocumentPage() {
     if (!currentModule) return null;
     const key = currentModule.key as ModuleKey;
     const visibility = moduleCfg[key];
-    const isFirst = step === 1;
-    const isLast = step === activeModules.length;
+    const isFirst = step === moduleOffset;
+    const isLast = step === moduleOffset + activeModules.length - 1;
+    const isSpecialModule = key === "docsRelacionados" || key === "controlCambios";
 
     return (
       <div className="space-y-5">
@@ -414,8 +695,8 @@ export function CreateDocumentPage() {
               </div>
               <p className="text-sm text-gray-500 mt-0.5 leading-relaxed">{currentModule.hint}</p>
             </div>
-            <button type="button" onClick={handleAiAssist} disabled={ai.loading}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white rounded-lg transition-colors whitespace-nowrap flex-shrink-0">
+            <button type="button" onClick={handleAiAssist} disabled={ai.loading || isSpecialModule}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white rounded-lg transition-colors whitespace-nowrap flex-shrink-0 ${isSpecialModule ? "hidden" : ""}`}>
               {ai.loading
                 ? <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />Generando...</>
                 : content[key]?.replace(/<[^>]+>/g, "").trim().length > 10
@@ -424,17 +705,32 @@ export function CreateDocumentPage() {
             </button>
           </div>
 
-          {/* Rich text editor */}
+          {/* Module content */}
           <div className="p-6 space-y-4">
-            <RichTextEditor
-              ref={editorRef}
-              value={content[key] ?? ""}
-              onChange={html => setContent(c => ({ ...c, [key]: html }))}
-              placeholder={visibility === "required" ? "Este módulo es requerido — redacte el contenido aquí..." : "Este módulo es opcional — puede dejarlo en blanco..."}
-              minHeight={260}
-            />
-            {/* AI suggestion panel */}
-            {ai.show && !ai.loading && ai.suggestion && (
+            {key === "docsRelacionados" ? (
+              <DocRelatedPicker
+                allDocs={allDocs}
+                currentDocId={doc?.id}
+                onChange={html => setContent(c => ({ ...c, [key]: html }))}
+              />
+            ) : key === "controlCambios" ? (
+              <ControlCambiosForm
+                docInfo={doc}
+                currentUser={user}
+                allUsers={allUsers}
+                onChange={html => setContent(c => ({ ...c, [key]: html }))}
+              />
+            ) : (
+              <RichTextEditor
+                ref={editorRef}
+                value={content[key] ?? ""}
+                onChange={html => setContent(c => ({ ...c, [key]: html }))}
+                placeholder={visibility === "required" ? "Este módulo es requerido — redacté el contenido aquí..." : "Este módulo es opcional — puede dejarlo en blanco..."}
+                minHeight={260}
+              />
+            )}
+            {/* AI suggestion panel — only for non-special modules */}
+            {!isSpecialModule && ai.show && !ai.loading && ai.suggestion && (
               <div className="border border-violet-200 rounded-lg bg-violet-50 p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-violet-800">
@@ -527,7 +823,7 @@ export function CreateDocumentPage() {
           })}
         </div>
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <button type="button" onClick={() => setStep(activeModules.length)} className="px-4 py-2.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 text-sm">
+          <button type="button" onClick={() => setStep(moduleOffset + activeModules.length - 1)} className="px-4 py-2.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 text-sm">
             ← Volver a editar
           </button>
           <button type="button" onClick={() => { toast.success("Borrador listo. Podés enviarlo a revisión desde el documento."); navigate(`/documents/${doc?.id}`); }}
@@ -539,12 +835,79 @@ export function CreateDocumentPage() {
     );
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── File upload step ───────────────────────────────────────────────────────────────────
+  const renderFileUploadStep = () => {
+    const typeConfig = FILE_UPLOAD_TYPES[setup.type];
+    if (!typeConfig) return null;
+    return (
+      <div className="space-y-5">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="flex items-start gap-3 px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-white">
+            <span className="text-2xl mt-0.5">📎</span>
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-gray-800">Cargar archivo</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Formatos admitidos para {typeConfig.label}: {typeConfig.hint}</p>
+            </div>
+          </div>
+          <div className="p-6 space-y-4">
+            <label className="flex flex-col items-center gap-3 px-6 py-10 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
+              <svg className="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              <div className="text-center">
+                <p className="text-sm font-medium text-gray-700">Arrastrá o hacé clic para seleccionar</p>
+                <p className="text-xs text-gray-400 mt-1">{typeConfig.hint}</p>
+              </div>
+              <input type="file" accept={typeConfig.accept} className="hidden" onChange={e => setUploadFile(e.target.files?.[0] ?? null)} />
+            </label>
+            {uploadFile && (
+              <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
+                <svg className="w-5 h-5 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">{uploadFile.name}</p>
+                  <p className="text-xs text-gray-500">{(uploadFile.size / 1024).toFixed(1)} KB</p>
+                </div>
+                <button type="button" onClick={() => setUploadFile(null)} className="text-gray-400 hover:text-gray-600 text-lg leading-none">×</button>
+              </div>
+            )}
+            {uploadFile && (
+              <button type="button" disabled={uploadingFile} onClick={handleUploadFileInWizard}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg disabled:opacity-50">
+                {uploadingFile
+                  ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Subiendo...</>
+                  : "⬆ Subir archivo"
+                }
+              </button>
+            )}
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
+              <span className="flex-shrink-0">&#8505;</span>
+              <span>El encabezado del SGD (código, versión, área, elaborado/revisado/aprobado) se aplica automáticamente al visualizar e imprimir el documento desde el sistema.</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <button type="button" onClick={handlePrev}
+            className="flex items-center gap-1.5 px-4 py-2.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 text-sm">
+            ← Anterior
+          </button>
+          <button type="button" onClick={() => { setAi({ show: false, loading: false, suggestion: "", isImprovement: false }); setStep(s => s + 1); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+            className="flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm">
+            {activeModules.length > 0 ? "Continuar →" : "Revisar →"}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // ── Render ──────────────────────────────────────────────────────────────────────
   return (
     <div className="max-w-3xl mx-auto pb-12 space-y-2">
       {renderProgress()}
       {step === 0 && renderSetup()}
-      {step >= 1 && !isReviewStep && renderModuleStep()}
+      {isFileUploadStep && renderFileUploadStep()}
+      {!isFileUploadStep && step >= 1 && !isReviewStep && currentModule && renderModuleStep()}
       {isReviewStep && renderReview()}
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Underline } from "@tiptap/extension-underline";
@@ -129,10 +130,27 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [value]);
 
-    if (!editor) return null;
-
     const [showColorPicker, setShowColorPicker] = useState(false);
-    const colorPickerRef = useRef<HTMLDivElement>(null);
+    const [hexInput, setHexInput] = useState("");
+    const colorBtnRef = useRef<HTMLButtonElement>(null);
+    const colorPickerPortalRef = useRef<HTMLDivElement>(null);
+
+    // Close color picker on outside click
+    useEffect(() => {
+      if (!showColorPicker) return;
+      const handler = (e: MouseEvent) => {
+        if (
+          colorPickerPortalRef.current && !colorPickerPortalRef.current.contains(e.target as Node) &&
+          colorBtnRef.current && !colorBtnRef.current.contains(e.target as Node)
+        ) {
+          setShowColorPicker(false);
+        }
+      };
+      document.addEventListener("mousedown", handler);
+      return () => document.removeEventListener("mousedown", handler);
+    }, [showColorPicker]);
+
+    if (!editor) return null;
 
     const addTable = () => {
       editor
@@ -220,35 +238,94 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(
           <Divider />
 
           {/* Color picker */}
-          <div className="relative" ref={colorPickerRef}>
+          <div className="relative">
             <button
+              ref={colorBtnRef}
               type="button"
               title="Color de texto"
-              onMouseDown={(e) => { e.preventDefault(); setShowColorPicker((v) => !v); }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                const c = editor.getAttributes("textStyle").color || "#111827";
+                setHexInput(c.startsWith("#") ? c : "#111827");
+                setShowColorPicker((v) => !v);
+              }}
               className="px-2.5 py-1.5 rounded text-sm font-semibold text-slate-600 hover:bg-slate-200 flex items-center gap-1 leading-none"
             >
               <span style={{ borderBottom: `3px solid ${editor.getAttributes("textStyle").color || "#111827"}` }}>A</span>
               <svg viewBox="0 0 10 6" className="w-2 h-2 fill-current opacity-50"><path d="M0 0l5 6 5-6z"/></svg>
             </button>
-            {showColorPicker && (
-              <div className="absolute top-full left-0 z-30 flex flex-wrap gap-1.5 p-2.5 bg-white border border-slate-200 rounded-lg shadow-xl w-40 mt-1">
-                {COLORS.map((c) => (
-                  <button
-                    key={c.value}
-                    type="button"
-                    title={c.label}
-                    onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().setColor(c.value).run(); setShowColorPicker(false); }}
-                    className="w-7 h-7 rounded-full border-2 border-white shadow hover:scale-110 transition-transform"
-                    style={{ backgroundColor: c.value }}
+            {showColorPicker && colorBtnRef.current && createPortal(
+              <div
+                ref={colorPickerPortalRef}
+                style={{
+                  position: "fixed",
+                  top: colorBtnRef.current.getBoundingClientRect().bottom + 6,
+                  left: colorBtnRef.current.getBoundingClientRect().left,
+                  zIndex: 9999,
+                }}
+                className="bg-white border border-slate-200 rounded-lg shadow-2xl p-3 w-64"
+              >
+                {/* Full color wheel + HEX input */}
+                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100">
+                  <label className="text-xs text-slate-500 font-medium">Color:</label>
+                  <input
+                    type="color"
+                    value={hexInput.startsWith("#") && hexInput.length === 7 ? hexInput : "#111827"}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setHexInput(v);
+                      editor.chain().focus().setColor(v).run();
+                    }}
+                    className="w-9 h-9 rounded cursor-pointer border border-slate-200 p-0.5"
+                    title="Abrir selector de color"
                   />
-                ))}
-                <button
-                  type="button"
-                  title="Quitar color"
-                  onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().unsetColor().run(); setShowColorPicker(false); }}
-                  className="w-7 h-7 rounded-full border-2 border-dashed border-slate-300 hover:bg-slate-100 text-xs text-slate-500 flex items-center justify-center"
-                >✕</button>
-              </div>
+                  <input
+                    type="text"
+                    value={hexInput}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setHexInput(v);
+                      if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+                        editor.chain().focus().setColor(v).run();
+                      }
+                    }}
+                    placeholder="#000000"
+                    maxLength={7}
+                    className="flex-1 text-xs border border-slate-200 rounded px-2 py-1.5 font-mono focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  />
+                </div>
+                {/* Quick swatches */}
+                <p className="text-xs text-slate-400 mb-1.5">Colores rápidos</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {COLORS.map((c) => (
+                    <button
+                      key={c.value}
+                      type="button"
+                      title={c.label}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        editor.chain().focus().setColor(c.value).run();
+                        setHexInput(c.value);
+                        setShowColorPicker(false);
+                      }}
+                      className="w-7 h-7 rounded-full border-2 border-white shadow hover:scale-110 transition-transform"
+                      style={{ backgroundColor: c.value }}
+                    />
+                  ))}
+                  <button
+                    type="button"
+                    title="Quitar color"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      editor.chain().focus().unsetColor().run();
+                      setHexInput("");
+                      setShowColorPicker(false);
+                    }}
+                    className="w-7 h-7 rounded-full border-2 border-dashed border-slate-300 hover:bg-slate-100 text-xs text-slate-500 flex items-center justify-center"
+                  >✕</button>
+                </div>
+              </div>,
+              document.body
             )}
           </div>
 

@@ -371,6 +371,12 @@ export function DocumentDetailPage() {
           .prose a { color: #1e40af !important; }
           .prose table { width: 100%; border-collapse: collapse; }
           .prose table td, .prose table th { border: 1px solid #cbd5e1; padding: 4px 8px; }
+          /* Smart page breaks */
+          .prose h1, .prose h2, .prose h3, .prose h4 { page-break-after: avoid; page-break-inside: avoid; }
+          .prose p, .prose li { orphans: 3; widows: 3; }
+          .prose tr { page-break-inside: avoid; }
+          .prose table { page-break-inside: auto; }
+          .print-section { page-break-inside: avoid; }
           .print-watermark::before {
             content: "${watermarkText}";
             position: fixed;
@@ -418,6 +424,7 @@ export function DocumentDetailPage() {
                   {[
                     doc.type && `Tipo: ${doc.type}`,
                     doc.area && `Área: ${doc.area}`,
+                    doc.updatedAt && `Última modif.: ${format(new Date(doc.updatedAt), "dd/MM/yyyy HH:mm")}`,
                     doc.publishedAt && `Vigencia: ${format(new Date(doc.publishedAt), "dd/MM/yyyy")}`,
                     doc.nextReviewDate && `Próxima revisión: ${format(new Date(doc.nextReviewDate), "dd/MM/yyyy")}`,
                   ].filter(Boolean).join("   |   ")}
@@ -506,7 +513,7 @@ export function DocumentDetailPage() {
           {Object.entries(doc.content as Record<string, string>)
             .filter(([, v]) => typeof v === "string" && v.replace(/<[^>]+>/g, "").trim().length > 0)
             .map(([key, value]) => (
-              <div key={key}>
+              <div key={key} className="print-section">
                 <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-2 border-b border-gray-100 pb-1">
                   {moduleLabels[key] ?? key}
                 </h3>
