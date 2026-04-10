@@ -5,9 +5,19 @@ import { Input } from "../components/Input.js";
 import { apiService } from "../services/api.js";
 import { useAuthStore } from "../store/auth.js";
 import { DocumentFlowDiagram } from "../components/DocumentFlowDiagram.js";
+import { plainToHtml } from "../components/RichTextEditor.js";
 import toast from "react-hot-toast";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+
+/** Render a content value that may be plain markdown or HTML */
+function renderContent(value: string): string {
+  if (!value) return "";
+  const trimmed = value.trim();
+  // If it already has HTML tags, render as-is
+  if (/^<[a-zA-Z]/.test(trimmed) || /<\/[a-zA-Z]>/.test(trimmed)) return value;
+  return plainToHtml(value);
+}
 
 export function DocumentDetailPage() {
   const { documentId } = useParams<{ documentId: string }>();
@@ -44,13 +54,18 @@ export function DocumentDetailPage() {
     if (doc?.status === "PUBLISHED") fetchConfirmations();
   }, [doc?.status]);
 
-  const fetchDocument = async () => {
+  const fetchDocument = async (retries = 2) => {
     if (!documentId) return;
     try {
       setIsLoading(true);
       const response = await apiService.getDocument(documentId);
       setDoc(response.data.data);
-    } catch {
+    } catch (err: any) {
+      if (retries > 0 && !err.response) {
+        // Network error (likely server cold start) — retry after 3s
+        setTimeout(() => fetchDocument(retries - 1), 3000);
+        return;
+      }
       toast.error("Error al cargar el documento");
       navigate("/documents");
     } finally {
@@ -301,6 +316,27 @@ export function DocumentDetailPage() {
   const appUrl = window.location.origin;
   const docUrl = `${appUrl}/documents/${doc.id}`;
 
+  // ── Elaborado / Revisado / Aprobado ─────────────────────────────────────────
+  const elaboradoPor = doc.createdByUser
+    ? `${doc.createdByUser.firstName} ${doc.createdByUser.lastName}`
+    : doc.createdBy === user?.id
+      ? `${user?.firstName} ${user?.lastName}`
+      : "—";
+  const revisadoPor = (doc.reviewTasks ?? [])
+    .filter((t: any) => {
+      const role = t.reviewer?.role ?? "";
+      return role === "REVIEWER" || role === "DOCUMENT_OWNER";
+    })
+    .map((t: any) => `${t.reviewer.firstName} ${t.reviewer.lastName}`)
+    .join(", ") || "—";
+  const aprobadoPor = (doc.reviewTasks ?? [])
+    .filter((t: any) => {
+      const role = t.reviewer?.role ?? "";
+      return (role === "APPROVER" || role === "ADMIN" || role === "QUALITY_MANAGER") && t.status === "APPROVED";
+    })
+    .map((t: any) => `${t.reviewer.firstName} ${t.reviewer.lastName}`)
+    .join(", ") || "—";
+
   const STATUS_LABELS: Record<string, string> = {
     DRAFT: "BORRADOR",
     IN_REVIEW: "EN REVISIÓN",
@@ -323,58 +359,88 @@ export function DocumentDetailPage() {
       {/* ── Print styles ── */}
       <style>{`
         @media print {
-          body * { visibility: hidden; }
-          #doc-print-area, #doc-print-area * { visibility: visible; }
-          #doc-print-area { position: absolute; inset: 0; }
+          @page { size: A4; margin: 1.8cm 1.5cm; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          body * { visibility: hidden !important; }
+          #doc-print-area, #doc-print-area * { visibility: visible !important; }
+          #doc-print-area { position: absolute; left: 0; top: 0; right: 0; }
           .no-print { display: none !important; }
+          .shadow, .shadow-md, .shadow-lg { box-shadow: none !important; }
+          .rounded-lg, .rounded { border-radius: 0 !important; }
+          .bg-gray-50 { background: #f9fafb !important; }
+          .prose a { color: #1e40af !important; }
+          .prose table { width: 100%; border-collapse: collapse; }
+          .prose table td, .prose table th { border: 1px solid #cbd5e1; padding: 4px 8px; }
           .print-watermark::before {
             content: "${watermarkText}";
             position: fixed;
-            top: 42%;
+            top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) rotate(-40deg);
-            font-size: 100px;
+            transform: translate(-50%, -50%) rotate(-38deg);
+            font-size: 110px;
             font-weight: 900;
-            color: #9CA3AF;
-            opacity: 0.12;
+            color: #94a3b8;
+            opacity: 0.08;
             white-space: nowrap;
             pointer-events: none;
             z-index: 9999;
+            letter-spacing: 0.05em;
           }
         }
       `}</style>
 
       {/* ── Printable area ── */}
-      <div id="doc-print-area" className="print-watermark">
-        {/* Centenario header — only visible when printing */}
-        <div className="hidden print:block mb-6">
-          <table className="w-full border-collapse border border-gray-800 text-sm">
+      <div id="doc-print-area" className={doc.status !== "PUBLISHED" ? "print-watermark" : ""}>
+        {/* ═══ CENTENARIO HEADER — only visible when printing ═══ */}
+        <div className="hidden print:block mb-5">
+          <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #CBD5E1", fontSize: "12px" }}>
             <tbody>
+              {/* Row 1: Logo | Title | Code */}
               <tr>
-                <td className="border border-gray-800 p-3 w-28 align-middle text-center">
-                  <img src="/logo-centenario.png" alt="Centenario" className="h-14 mx-auto object-contain" />
+                <td style={{ width: "110px", borderRight: "1px solid #CBD5E1", borderBottom: "1px solid #CBD5E1", padding: "10px 8px", textAlign: "center", verticalAlign: "middle", backgroundColor: "#F8FAFC" }}>
+                  <img src="/logo-centenario.png" alt="Centenario" style={{ height: "68px", margin: "0 auto", display: "block", objectFit: "contain" }} />
                 </td>
-                <td className="border border-gray-800 p-3 text-center align-middle">
-                  <p className="font-bold text-base uppercase tracking-wide">{doc.title}</p>
+                <td style={{ borderRight: "1px solid #CBD5E1", borderBottom: "1px solid #CBD5E1", padding: "10px 16px", textAlign: "center", verticalAlign: "middle" }}>
+                  <div style={{ fontSize: "14px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", lineHeight: 1.3 }}>{doc.title}</div>
+                  {doc.description && <div style={{ fontSize: "10px", color: "#64748B", marginTop: "4px" }}>{doc.description}</div>}
                 </td>
-                <td className="border border-gray-800 p-3 w-36 align-middle text-center">
-                  <p className="font-mono font-bold text-sm">{doc.code}</p>
+                <td style={{ width: "130px", borderBottom: "1px solid #CBD5E1", padding: "10px 8px", textAlign: "center", verticalAlign: "middle", backgroundColor: "#F8FAFC" }}>
+                  <div style={{ fontFamily: "monospace", fontWeight: 700, fontSize: "12px" }}>{doc.code}</div>
+                  <div style={{ fontSize: "10px", color: "#64748B", marginTop: "4px" }}>Versión {doc.currentVersionLabel}</div>
                 </td>
               </tr>
+              {/* Row 2: Area | Vigencia | Next review */}
               <tr>
-                <td colSpan={3} className="border border-gray-800 px-3 py-2 text-center text-xs text-gray-700">
-                  {doc.area ? `${doc.area} | ` : ""}
-                  Versión: {doc.currentVersionLabel}
-                  {doc.publishedAt ? ` | Vigencia: ${format(new Date(doc.publishedAt), "dd/MM/yyyy")}` : ""}
-                  {doc.nextReviewDate ? ` | Próxima revisión: ${format(new Date(doc.nextReviewDate), "dd/MM/yyyy")}` : ""}
+                <td colSpan={3} style={{ borderBottom: "1px solid #CBD5E1", padding: "5px 16px", textAlign: "center", color: "#475569", fontSize: "10px" }}>
+                  {[
+                    doc.type && `Tipo: ${doc.type}`,
+                    doc.area && `Área: ${doc.area}`,
+                    doc.publishedAt && `Vigencia: ${format(new Date(doc.publishedAt), "dd/MM/yyyy")}`,
+                    doc.nextReviewDate && `Próxima revisión: ${format(new Date(doc.nextReviewDate), "dd/MM/yyyy")}`,
+                  ].filter(Boolean).join("   |   ")}
+                </td>
+              </tr>
+              {/* Row 3: Elaborado | Revisado | Aprobado */}
+              <tr>
+                <td style={{ borderRight: "1px solid #CBD5E1", padding: "7px 10px", textAlign: "center", verticalAlign: "top" }}>
+                  <div style={{ fontSize: "9px", fontWeight: 600, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "3px" }}>Elaborado por</div>
+                  <div style={{ fontSize: "11px", fontWeight: 500 }}>{elaboradoPor}</div>
+                </td>
+                <td style={{ borderRight: "1px solid #CBD5E1", padding: "7px 10px", textAlign: "center", verticalAlign: "top" }}>
+                  <div style={{ fontSize: "9px", fontWeight: 600, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "3px" }}>Revisado por</div>
+                  <div style={{ fontSize: "11px", fontWeight: 500 }}>{revisadoPor}</div>
+                </td>
+                <td style={{ padding: "7px 10px", textAlign: "center", verticalAlign: "top" }}>
+                  <div style={{ fontSize: "9px", fontWeight: 600, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "3px" }}>Aprobado por</div>
+                  <div style={{ fontSize: "11px", fontWeight: 500 }}>{aprobadoPor}</div>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
 
-      {/* ── Screen header ── */}
-      <div className="flex items-start justify-between gap-4">
+      {/* ── Screen header — hidden when printing ── */}
+      <div className="flex items-start justify-between gap-4 no-print">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{doc.title}</h1>
           <p className="text-gray-600 mt-1">Código: <span className="font-mono font-medium">{doc.code}</span></p>
@@ -439,7 +505,7 @@ export function DocumentDetailPage() {
                 </h3>
                 <div
                   className="prose prose-sm max-w-none text-gray-800"
-                  dangerouslySetInnerHTML={{ __html: value }}
+                  dangerouslySetInnerHTML={{ __html: renderContent(value) }}
                 />
               </div>
             ))}
@@ -447,7 +513,7 @@ export function DocumentDetailPage() {
       )}
 
       {/* #2 PDF inline preview */}
-      {previewUrl && (        <div id="pdf-preview" className="bg-white rounded-lg shadow p-4">
+      {previewUrl && (        <div id="pdf-preview" className="bg-white rounded-lg shadow p-4 no-print">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-bold text-gray-900">Previsualización del documento</h2>
             <button onClick={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}
@@ -458,7 +524,7 @@ export function DocumentDetailPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white rounded-lg shadow p-6 no-print">
         <h2 className="font-bold text-gray-900 mb-4">Acciones</h2>
         <div className="flex flex-wrap gap-2">
           {canEdit && (
@@ -516,7 +582,7 @@ export function DocumentDetailPage() {
       </div>
 
       {showUploadForm && (
-        <div ref={uploadFormRef}>
+        <div ref={uploadFormRef} className="no-print">
           <form onSubmit={handleUploadFile} className="bg-white rounded-lg shadow p-6 space-y-4">
             <h2 className="font-bold text-gray-900">Subir Archivo del Documento</h2>
             <p className="text-sm text-gray-500">Formatos admitidos: <strong>PDF, DOCX, XLSX</strong>  Tamaño máximo: 50 MB</p>
@@ -534,7 +600,7 @@ export function DocumentDetailPage() {
       )}
 
       {showReviewForm && (
-        <div ref={reviewFormRef}>
+        <div ref={reviewFormRef} className="no-print">
           <form onSubmit={handleSubmitForReview} className="bg-white rounded-lg shadow p-6 space-y-4">
             <h2 className="font-bold text-gray-900">Enviar a Revisión</h2>
             <Input label="Comentario (opcional)" value={reviewComentario}
@@ -565,7 +631,7 @@ export function DocumentDetailPage() {
       )}
 
       {showApproveForm && (
-        <div ref={approveFormRef} className="bg-white rounded-lg shadow p-6 space-y-4">
+        <div ref={approveFormRef} className="bg-white rounded-lg shadow p-6 space-y-4 no-print">
           <h2 className="font-bold text-gray-900">Revisión del Documento</h2>
           <div className="space-y-1">
             <label className="block text-sm font-medium text-gray-700">
@@ -599,7 +665,7 @@ export function DocumentDetailPage() {
       )}
 
       {showNewVersionForm && (
-        <div className="bg-amber-50 border border-amber-300 rounded-lg p-6 space-y-4">
+        <div className="bg-amber-50 border border-amber-300 rounded-lg p-6 space-y-4 no-print">
           <div>
             <h2 className="font-bold text-gray-900">Crear Nueva Versión</h2>
             <p className="text-sm text-gray-600 mt-1">
@@ -627,7 +693,7 @@ export function DocumentDetailPage() {
       )}
 
       {doc.reviewTasks && doc.reviewTasks.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-6 no-print">
           <h2 className="font-bold text-gray-900 mb-4">Revisiones</h2>
           <div className="space-y-3">
             {doc.reviewTasks.map((task: any) => (
@@ -645,7 +711,7 @@ export function DocumentDetailPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white rounded-lg shadow p-6 no-print">
         <h2 className="font-bold text-gray-900 mb-4">Comentarios</h2>
         {doc.comments && doc.comments.length > 0 ? (
           <div className="space-y-4 mb-6">
@@ -708,10 +774,12 @@ export function DocumentDetailPage() {
         </div>
       )}
 
-      <DocumentFlowDiagram currentStatus={doc.status} doc={doc} />
+      <div className="no-print">
+        <DocumentFlowDiagram currentStatus={doc.status} doc={doc} />
+      </div>
 
       {doc.versions && doc.versions.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-6 no-print">
           <h2 className="font-bold text-gray-900 mb-4">Historial de Versiones</h2>
           <div className="space-y-3">
             {doc.versions.map((version: any) => (

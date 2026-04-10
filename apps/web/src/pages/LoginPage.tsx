@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+﻿import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/Button.js";
 import { Input } from "../components/Input.js";
@@ -23,11 +23,23 @@ export function LoginPage() {
   const navigate = useNavigate();
   const { setUser, setTokens } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
+  const [warmingUp, setWarmingUp] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     email: "admin@centenario.local",
     password: "Admin@2026!",
   });
+  const warmupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (isLoading) {
+      warmupTimerRef.current = setTimeout(() => setWarmingUp(true), 8000);
+    } else {
+      if (warmupTimerRef.current) clearTimeout(warmupTimerRef.current);
+      setWarmingUp(false);
+    }
+    return () => { if (warmupTimerRef.current) clearTimeout(warmupTimerRef.current); };
+  }, [isLoading]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -114,16 +126,18 @@ export function LoginPage() {
           <Button type="submit" isLoading={isLoading} className="w-full" size="lg">
             Ingresar
           </Button>
+          {warmingUp && (
+            <p className="text-xs text-center text-amber-600 animate-pulse">
+              El servidor está iniciando, aguardá unos segundos…
+            </p>
+          )}
         </form>
 
         <div className="mt-6 p-4 bg-blue-50 rounded-lg text-sm text-gray-700">
-          <p className="font-medium mb-2">Credenciales de demostracion:</p>
+          <p className="font-medium mb-2">Credenciales de acceso:</p>
           <ul className="space-y-1 text-xs">
-            <li><strong>Admin:</strong> admin@centenario.net.uy / Admin@12345</li>
-            <li><strong>Propietario:</strong> owner@centenario.net.uy / Owner@12345</li>
-            <li><strong>Revisor:</strong> reviewer@centenario.net.uy / Reviewer@12345</li>
-            <li><strong>Aprobador:</strong> approver@centenario.net.uy / Approver@12345</li>
-            <li><strong>Lector:</strong> reader@centenario.net.uy / Reader@12345</li>
+            <li><strong>Admin:</strong> admin@centenario.local / Admin@2026!</li>
+            <li><strong>Calidad:</strong> calidad@centenario.local / Calidad@2026!</li>
           </ul>
         </div>
       </div>

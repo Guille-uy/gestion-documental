@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useImperativeHandle } from "react";
+import React, { forwardRef, useEffect, useImperativeHandle, useState, useRef } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Underline } from "@tiptap/extension-underline";
@@ -32,6 +32,20 @@ const COLORS = [
   { label: "Violeta", value: "#7C3AED" },
 ];
 
+// ── Minimal SVG icon components ────────────────────────────────────────────
+const IcUndo = () => <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>;
+const IcRedo = () => <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/></svg>;
+const IcBold = () => <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M15.6 11.79C16.57 11.11 17.25 10.01 17.25 9c0-2.74-2.13-5-5-5H7v14h6.04c2.65 0 4.96-2.13 4.96-4.75 0-1.84-.92-3.41-2.4-4.46zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"/></svg>;
+const IcItalic = () => <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4h-8z"/></svg>;
+const IcUnderline = () => <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M12 17c3.31 0 6-2.69 6-6V3h-2.5v8c0 1.93-1.57 3.5-3.5 3.5S8.5 12.93 8.5 11V3H6v8c0 3.31 2.69 6 6 6zm-7 2v2h14v-2H5z"/></svg>;
+const IcStrike = () => <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M10 19h4v-3h-4v3zM5 4v3h5v3h4V7h5V4H5zM3 14h18v-2H3v2z"/></svg>;
+const IcBulletList = () => <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M4 10.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm0-6c-.83 0-1.5.67-1.5 1.5S3.17 7.5 4 7.5 5.5 6.83 5.5 6 4.83 4.5 4 4.5zm0 12c-.83 0-1.5.68-1.5 1.5s.68 1.5 1.5 1.5 1.5-.68 1.5-1.5-.67-1.5-1.5-1.5zM7 19h14v-2H7v2zm0-6h14v-2H7v2zm0-8v2h14V5H7z"/></svg>;
+const IcNumList = () => <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M2 17h2v.5H3v1h1v.5H2v1h3v-4H2v1zm1-9h1V4H2v1h1v3zm-1 3h1.8L2 13.1v.9h3v-1H3.2L5 10.9V10H2v1zm5-6v2h14V5H7zm0 14h14v-2H7v2zm0-6h14v-2H7v2z"/></svg>;
+const IcAlignLeft = () => <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M15 15H3v2h12v-2zm0-8H3v2h12V7zM3 13h18v-2H3v2zm0 8h18v-2H3v2zM3 3v2h18V3H3z"/></svg>;
+const IcAlignCenter = () => <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M7 15v2h10v-2H7zm-4 6h18v-2H3v2zm0-8h18v-2H3v2zm4-6v2h10V7H7zM3 3v2h18V3H3z"/></svg>;
+const IcAlignRight = () => <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M3 21h18v-2H3v2zm6-4h12v-2H9v2zm-6-4h18v-2H3v2zm6-4h12V7H9v2zM3 3v2h18V3H3z"/></svg>;
+const IcTable = () => <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M20 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 2v3H5V5h15zm-7.5 5h-3v-3h3v3zm0 5h-3v-3h3v3zm5 0h-3v-3h3v3zm0 5h-3v-3h3v3zm-5 0h-3v-3h3v3zm-5-5H5v-3h2.5v3zm0 5H5v-3h2.5v3z"/></svg>;
+
 function ToolbarBtn({
   onClick,
   active,
@@ -51,10 +65,10 @@ function ToolbarBtn({
       onMouseDown={(e) => { e.preventDefault(); onClick(); }}
       disabled={disabled}
       title={title}
-      className={`px-2 py-1 rounded text-sm font-medium transition-colors select-none
+      className={`px-2.5 py-1.5 rounded text-sm font-medium transition-colors select-none leading-none
         ${active
-          ? "bg-blue-600 text-white"
-          : "text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+          ? "bg-blue-600 text-white shadow-sm"
+          : "text-slate-600 hover:bg-slate-200 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed"
         }`}
     >
       {children}
@@ -63,7 +77,7 @@ function ToolbarBtn({
 }
 
 function Divider() {
-  return <div className="w-px h-5 bg-gray-300 mx-0.5 self-center flex-shrink-0" />;
+  return <div className="w-px h-5 bg-slate-200 mx-1 self-center flex-shrink-0" />;
 }
 
 export const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(
@@ -117,28 +131,31 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(
 
     if (!editor) return null;
 
+    const [showColorPicker, setShowColorPicker] = useState(false);
+    const colorPickerRef = useRef<HTMLDivElement>(null);
+
     const addTable = () => {
       editor
         .chain()
         .focus()
-        .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+        .insertTable({ rows: 3, cols: 4, withHeaderRow: true })
         .run();
     };
 
     return (
-      <div className="border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 bg-white">
+      <div className="border border-slate-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 bg-white">
         {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-gray-200 bg-gray-50">
+        <div className="flex flex-wrap items-center gap-0.5 px-2 py-2 border-b border-slate-200 bg-slate-50">
           {/* Undo / Redo */}
-          <ToolbarBtn title="Deshacer" disabled={!editor.can().undo()} onClick={() => editor.chain().focus().undo().run()}>↩</ToolbarBtn>
-          <ToolbarBtn title="Rehacer" disabled={!editor.can().redo()} onClick={() => editor.chain().focus().redo().run()}>↪</ToolbarBtn>
+          <ToolbarBtn title="Deshacer (Ctrl+Z)" disabled={!editor.can().undo()} onClick={() => editor.chain().focus().undo().run()}><IcUndo /></ToolbarBtn>
+          <ToolbarBtn title="Rehacer (Ctrl+Y)" disabled={!editor.can().redo()} onClick={() => editor.chain().focus().redo().run()}><IcRedo /></ToolbarBtn>
           <Divider />
 
           {/* Text style */}
-          <ToolbarBtn title="Negrita" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}><strong>B</strong></ToolbarBtn>
-          <ToolbarBtn title="Cursiva" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}><em>I</em></ToolbarBtn>
-          <ToolbarBtn title="Subrayado" active={editor.isActive("underline")} onClick={() => editor.chain().focus().toggleUnderline().run()}><span style={{ textDecoration: "underline" }}>U</span></ToolbarBtn>
-          <ToolbarBtn title="Tachado" active={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()}><span style={{ textDecoration: "line-through" }}>S</span></ToolbarBtn>
+          <ToolbarBtn title="Negrita (Ctrl+B)" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}><IcBold /></ToolbarBtn>
+          <ToolbarBtn title="Cursiva (Ctrl+I)" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}><IcItalic /></ToolbarBtn>
+          <ToolbarBtn title="Subrayado (Ctrl+U)" active={editor.isActive("underline")} onClick={() => editor.chain().focus().toggleUnderline().run()}><IcUnderline /></ToolbarBtn>
+          <ToolbarBtn title="Tachado" active={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()}><IcStrike /></ToolbarBtn>
           <Divider />
 
           {/* Headings */}
@@ -148,64 +165,78 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(
           <Divider />
 
           {/* Lists */}
-          <ToolbarBtn title="Lista" active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()}>☰</ToolbarBtn>
-          <ToolbarBtn title="Lista numerada" active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()}>①</ToolbarBtn>
+          <ToolbarBtn title="Lista de viñetas" active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()}><IcBulletList /></ToolbarBtn>
+          <ToolbarBtn title="Lista numerada" active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()}><IcNumList /></ToolbarBtn>
           <ToolbarBtn title="Cita" active={editor.isActive("blockquote")} onClick={() => editor.chain().focus().toggleBlockquote().run()}>❝</ToolbarBtn>
           <Divider />
 
           {/* Align */}
-          <ToolbarBtn title="Izquierda" active={editor.isActive({ textAlign: "left" })} onClick={() => editor.chain().focus().setTextAlign("left").run()}>⬅</ToolbarBtn>
-          <ToolbarBtn title="Centrar" active={editor.isActive({ textAlign: "center" })} onClick={() => editor.chain().focus().setTextAlign("center").run()}>↔</ToolbarBtn>
-          <ToolbarBtn title="Derecha" active={editor.isActive({ textAlign: "right" })} onClick={() => editor.chain().focus().setTextAlign("right").run()}>➡</ToolbarBtn>
+          <ToolbarBtn title="Alinear a la izquierda" active={editor.isActive({ textAlign: "left" })} onClick={() => editor.chain().focus().setTextAlign("left").run()}><IcAlignLeft /></ToolbarBtn>
+          <ToolbarBtn title="Centrar" active={editor.isActive({ textAlign: "center" })} onClick={() => editor.chain().focus().setTextAlign("center").run()}><IcAlignCenter /></ToolbarBtn>
+          <ToolbarBtn title="Alinear a la derecha" active={editor.isActive({ textAlign: "right" })} onClick={() => editor.chain().focus().setTextAlign("right").run()}><IcAlignRight /></ToolbarBtn>
           <Divider />
 
           {/* Color picker */}
-          <div className="relative group">
+          <div className="relative" ref={colorPickerRef}>
             <button
               type="button"
               title="Color de texto"
-              onMouseDown={(e) => e.preventDefault()}
-              className="px-2 py-1 rounded text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-1"
+              onMouseDown={(e) => { e.preventDefault(); setShowColorPicker((v) => !v); }}
+              className="px-2.5 py-1.5 rounded text-sm font-semibold text-slate-600 hover:bg-slate-200 flex items-center gap-1 leading-none"
             >
-              A
-              <span
-                className="inline-block w-3 h-1.5 rounded-sm"
-                style={{ backgroundColor: editor.getAttributes("textStyle").color || "#111827" }}
-              />
+              <span style={{ borderBottom: `3px solid ${editor.getAttributes("textStyle").color || "#111827"}` }}>A</span>
+              <svg viewBox="0 0 10 6" className="w-2 h-2 fill-current opacity-50"><path d="M0 0l5 6 5-6z"/></svg>
             </button>
-            <div className="absolute top-full left-0 z-20 hidden group-hover:flex group-focus-within:flex flex-wrap gap-1 p-2 bg-white border border-gray-200 rounded-lg shadow-lg w-36 mt-0.5">
-              {COLORS.map((c) => (
+            {showColorPicker && (
+              <div className="absolute top-full left-0 z-30 flex flex-wrap gap-1.5 p-2.5 bg-white border border-slate-200 rounded-lg shadow-xl w-40 mt-1">
+                {COLORS.map((c) => (
+                  <button
+                    key={c.value}
+                    type="button"
+                    title={c.label}
+                    onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().setColor(c.value).run(); setShowColorPicker(false); }}
+                    className="w-7 h-7 rounded-full border-2 border-white shadow hover:scale-110 transition-transform"
+                    style={{ backgroundColor: c.value }}
+                  />
+                ))}
                 <button
-                  key={c.value}
                   type="button"
-                  title={c.label}
-                  onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().setColor(c.value).run(); }}
-                  className="w-6 h-6 rounded-full border border-gray-200 hover:scale-110 transition-transform"
-                  style={{ backgroundColor: c.value }}
-                />
-              ))}
-              <button
-                type="button"
-                title="Sin color"
-                onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().unsetColor().run(); }}
-                className="w-6 h-6 rounded-full border border-dashed border-gray-400 hover:bg-gray-100 text-xs text-gray-500 flex items-center justify-center"
-              >✕</button>
-            </div>
+                  title="Quitar color"
+                  onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().unsetColor().run(); setShowColorPicker(false); }}
+                  className="w-7 h-7 rounded-full border-2 border-dashed border-slate-300 hover:bg-slate-100 text-xs text-slate-500 flex items-center justify-center"
+                >✕</button>
+              </div>
+            )}
           </div>
 
           {/* Highlight */}
-          <ToolbarBtn title="Resaltar" active={editor.isActive("highlight")} onClick={() => editor.chain().focus().toggleHighlight({ color: "#FEF08A" }).run()}>
-            <span className="px-0.5 rounded" style={{ backgroundColor: "#FEF08A" }}>ab</span>
+          <ToolbarBtn title="Resaltar texto" active={editor.isActive("highlight")} onClick={() => editor.chain().focus().toggleHighlight({ color: "#FEF08A" }).run()}>
+            <span className="px-0.5 rounded text-xs font-bold" style={{ backgroundColor: "#FEF08A", color: "#78350f" }}>ab</span>
           </ToolbarBtn>
           <Divider />
 
           {/* Table */}
-          <ToolbarBtn title="Insertar tabla" onClick={addTable}>⊞</ToolbarBtn>
+          <ToolbarBtn title="Insertar tabla (3×4)" onClick={addTable}>
+            <span className="flex items-center gap-1"><IcTable /><span className="text-xs">Tabla</span></span>
+          </ToolbarBtn>
           {editor.isActive("table") && (
             <>
-              <ToolbarBtn title="Agregar columna" onClick={() => editor.chain().focus().addColumnAfter().run()}>+col</ToolbarBtn>
-              <ToolbarBtn title="Agregar fila" onClick={() => editor.chain().focus().addRowAfter().run()}>+fila</ToolbarBtn>
-              <ToolbarBtn title="Eliminar tabla" onClick={() => editor.chain().focus().deleteTable().run()}>✕tab</ToolbarBtn>
+              <Divider />
+              <ToolbarBtn title="Agregar columna a la derecha" onClick={() => editor.chain().focus().addColumnAfter().run()}>
+                <span className="text-xs">+Col</span>
+              </ToolbarBtn>
+              <ToolbarBtn title="Eliminar columna" onClick={() => editor.chain().focus().deleteColumn().run()}>
+                <span className="text-xs text-red-500">−Col</span>
+              </ToolbarBtn>
+              <ToolbarBtn title="Agregar fila abajo" onClick={() => editor.chain().focus().addRowAfter().run()}>
+                <span className="text-xs">+Fila</span>
+              </ToolbarBtn>
+              <ToolbarBtn title="Eliminar fila" onClick={() => editor.chain().focus().deleteRow().run()}>
+                <span className="text-xs text-red-500">−Fila</span>
+              </ToolbarBtn>
+              <ToolbarBtn title="Eliminar tabla" onClick={() => editor.chain().focus().deleteTable().run()}>
+                <span className="text-xs text-red-600 font-semibold">✕ Tabla</span>
+              </ToolbarBtn>
             </>
           )}
         </div>

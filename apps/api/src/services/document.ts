@@ -166,7 +166,7 @@ export async function getDocument(documentId: string) {
         orderBy: { createdAt: "desc" },
         include: {
           user: {
-            select: { id: true, firstName: true, lastName: true, email: true },
+            select: { id: true, firstName: true, lastName: true, email: true, role: true },
           },
         },
       },
@@ -186,8 +186,17 @@ export async function getDocument(documentId: string) {
       })
     : [];
   const creatorMap = Object.fromEntries(creators.map((u: any) => [u.id, u]));
+  // Fetch document creator
+  const docCreator = document.createdBy
+    ? await prisma.user.findUnique({
+        where: { id: document.createdBy },
+        select: { id: true, firstName: true, lastName: true, email: true },
+      })
+    : null;
+
   const enrichedDoc = {
     ...document,
+    _docCreatedByUser: docCreator,
     versions: (document.versions || []).map((v: any) => ({
       ...v,
       _createdByUser: creatorMap[v.createdBy] ?? null,
@@ -787,6 +796,7 @@ function formatDocument(doc: any) {
     googleDriveFileId: doc.googleDriveFileId,
     content: doc.content ?? null,
     createdBy: doc.createdBy,
+    createdByUser: doc._docCreatedByUser ?? null,
     createdAt: doc.createdAt,
     updatedBy: doc.updatedBy,
     updatedAt: doc.updatedAt,
