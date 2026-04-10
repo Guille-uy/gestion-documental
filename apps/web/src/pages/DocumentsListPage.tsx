@@ -17,6 +17,7 @@ const STATUS_COLORS: Record<string,string> = {
   OBSOLETE:  "bg-red-50 text-red-600 border-red-200",
 };
 const TYPE_LABELS: Record<string,string> = { SOP:"SOP", POLICY:"Política", WI:"Inst. Trabajo", FORM:"Formulario", RECORD:"Registro" };
+const SITE_LABELS: Record<string,string> = { CO:"Corporativo", FE:"Fábrica de elaboración", CD:"Centro de distribución" };
 
 function StatusBadge({ status }: { status: string }) {
   return (
@@ -29,21 +30,17 @@ function StatusBadge({ status }: { status: string }) {
 // #7 Skeleton loaders
 function TableSkeleton() {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <table className="w-full">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+      <table className="w-full min-w-[1100px]">
         <thead className="bg-gray-50 border-b border-gray-100">
-          <tr>{["Código","Título","Estado","Tipo","Área","Versión",""].map(h=><th key={h} className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>)}</tr>
+          <tr>{["Tipo","Carpeta","Sitio","Sector","Código","Nombre","Versión","Fecha emisión","Fecha revisión","Estado","Observaciones",""].map(h=><th key={h} className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>)}</tr>
         </thead>
         <tbody className="divide-y divide-gray-50">
           {Array.from({length:7}).map((_,i)=>(
             <tr key={i} className="animate-pulse">
-              <td className="px-5 py-4"><div className="h-3 w-28 bg-gray-200 rounded" /></td>
-              <td className="px-5 py-4"><div className="h-3 w-48 bg-gray-200 rounded" /></td>
-              <td className="px-5 py-4"><div className="h-5 w-20 bg-gray-200 rounded-full" /></td>
-              <td className="px-5 py-4"><div className="h-3 w-16 bg-gray-200 rounded" /></td>
-              <td className="px-5 py-4"><div className="h-3 w-20 bg-gray-200 rounded" /></td>
-              <td className="px-5 py-4"><div className="h-3 w-10 bg-gray-200 rounded" /></td>
-              <td className="px-5 py-4"><div className="h-3 w-8 bg-gray-200 rounded" /></td>
+              {Array.from({length:12}).map((_2,j)=>(
+                <td key={j} className="px-4 py-4"><div className="h-3 bg-gray-200 rounded" style={{width: [60,120,90,100,90,160,40,80,80,70,100,30][j]}} /></td>
+              ))}
             </tr>
           ))}
         </tbody>
@@ -120,10 +117,20 @@ export function DocumentsListPage() {
   const [total, setTotal] = useState(0);
   const [filters, setFilters] = useState({ search: "", status: "", area: "", type: "" });
   const [sort, setSort] = useState<{ sortBy: string; sortOrder: "asc" | "desc" }>({ sortBy: "createdAt", sortOrder: "desc" });
+  const [sectorMap, setSectorMap] = useState<Record<string, string>>({});
   const [viewMode, setViewMode] = useState<"table" | "cards">("table"); // #9 toggle
   const limit = 20;
 
   useEffect(() => { fetchDocuments(); }, [page, filters, sort]);
+
+  useEffect(() => {
+    apiService.getAreas().then(r => {
+      const areas: any[] = r.data.data ?? [];
+      const map: Record<string, string> = {};
+      areas.forEach((a: any) => { if (a.sectorCode && a.sector) map[a.sectorCode] = a.sector; });
+      setSectorMap(map);
+    }).catch(() => {});
+  }, []);
 
   const fetchDocuments = async () => {
     try {
@@ -208,11 +215,19 @@ export function DocumentsListPage() {
   };
 
   const handleExportCsv = () => {
-    const header = ["Código","Título","Tipo","Área","Estado","Versión","Creado"];
+    const header = ["Tipo","Carpeta","Sitio","Sector","Código","Nombre","Versión","Fecha de emisión","Fecha de revisión","Estado","Observaciones"];
     const rows = documents.map((d: any) => [
-      d.code, d.title, TYPE_LABELS[d.type] || d.type, d.area || "",
-      STATUS_LABELS[d.status] || d.status, d.currentVersionLabel,
-      new Date(d.createdAt).toLocaleDateString("es-AR"),
+      TYPE_LABELS[d.type] || d.type,
+      d.area || "",
+      SITE_LABELS[d.siteCode] || d.siteCode || "",
+      sectorMap[d.sectorCode] || d.sectorCode || "",
+      d.code,
+      d.title,
+      d.currentVersionLabel,
+      d.publishedAt ? new Date(d.publishedAt).toLocaleDateString("es-AR") : "",
+      d.nextReviewDate ? new Date(d.nextReviewDate).toLocaleDateString("es-AR") : "",
+      STATUS_LABELS[d.status] || d.status,
+      d.description || "",
     ]);
     const csv = [header, ...rows].map(r => r.map((v: any) => `"${v ?? ""}"`).join(",")).join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
@@ -325,8 +340,8 @@ export function DocumentsListPage() {
         <EmptyState hasFilters={hasFilters} onClear={clearFilters} />
       ) : viewMode === "table" ? (
         /* TABLE VIEW */
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+          <table className="w-full min-w-[1200px]">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
                 {isAdmin && (
@@ -338,19 +353,23 @@ export function DocumentsListPage() {
                   </th>
                 )}
                 {([
-                  { label: "Código", field: "code" },
-                  { label: "Título", field: "title" },
-                  { label: "Estado", field: null },
                   { label: "Tipo", field: null },
-                  { label: "Área", field: "area" },
+                  { label: "Carpeta", field: "area" },
+                  { label: "Sitio", field: null },
+                  { label: "Sector", field: null },
+                  { label: "Código", field: "code" },
+                  { label: "Nombre", field: "title" },
                   { label: "Versión", field: null },
-                  { label: "Creado", field: "createdAt" },
+                  { label: "Fecha de emisión", field: "publishedAt" },
+                  { label: "Fecha de revisión", field: "nextReviewDate" },
+                  { label: "Estado", field: null },
+                  { label: "Observaciones", field: null },
                   { label: "", field: null },
                 ] as { label: string; field: string | null }[]).map(({ label, field }) => (
                   <th
                     key={label}
                     onClick={() => field && handleSort(field)}
-                    className={`px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide group ${field ? "cursor-pointer hover:text-gray-700 select-none" : ""}`}
+                    className={`px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide group ${field ? "cursor-pointer hover:text-gray-700 select-none" : ""}`}
                   >
                     <span className="flex items-center">
                       {label}
@@ -371,18 +390,26 @@ export function DocumentsListPage() {
                         className="rounded border-gray-300 text-blue-600 cursor-pointer" />
                     </td>
                   )}
-                  <td className="px-5 py-3.5">
-                    <span className="font-mono text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">{doc.code}</span>
+                  <td className="px-4 py-3.5 text-sm text-gray-600 whitespace-nowrap">{TYPE_LABELS[doc.type] || doc.type}</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-600 whitespace-nowrap">{doc.area || "—"}</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-600 whitespace-nowrap">{SITE_LABELS[doc.siteCode] || doc.siteCode || "—"}</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-600 whitespace-nowrap">{sectorMap[doc.sectorCode] || doc.sectorCode || "—"}</td>
+                  <td className="px-4 py-3.5">
+                    <span className="font-mono text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded whitespace-nowrap">{doc.code}</span>
                   </td>
-                  <td className="px-5 py-3.5 max-w-xs">
+                  <td className="px-4 py-3.5 max-w-[200px]">
                     <span className="text-sm text-gray-900 font-medium line-clamp-1">{doc.title}</span>
                   </td>
-                  <td className="px-5 py-3.5"><StatusBadge status={doc.status} /></td>
-                  <td className="px-5 py-3.5 text-sm text-gray-600">{TYPE_LABELS[doc.type] || doc.type}</td>
-                  <td className="px-5 py-3.5 text-sm text-gray-600">{doc.area || "—"}</td>
-                  <td className="px-5 py-3.5 text-sm text-gray-600">{doc.currentVersionLabel}</td>
-                  <td className="px-5 py-3.5 text-xs text-gray-400 whitespace-nowrap">{format(new Date(doc.createdAt), "dd/MM/yyyy")}</td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-4 py-3.5 text-sm text-gray-600 whitespace-nowrap">{doc.currentVersionLabel}</td>
+                  <td className="px-4 py-3.5 text-xs text-gray-500 whitespace-nowrap">{doc.publishedAt ? format(new Date(doc.publishedAt), "dd/MM/yyyy") : "—"}</td>
+                  <td className="px-4 py-3.5 text-xs text-gray-500 whitespace-nowrap">{doc.nextReviewDate ? format(new Date(doc.nextReviewDate), "dd/MM/yyyy") : "—"}</td>
+                  <td className="px-4 py-3.5"><StatusBadge status={doc.status} /></td>
+                  <td className="px-4 py-3.5 max-w-[140px]">
+                    {doc.description
+                      ? <span className="text-xs text-gray-500 line-clamp-1">{doc.description}</span>
+                      : <span className="text-xs text-gray-300">—</span>}
+                  </td>
+                  <td className="px-4 py-3.5">
                     <Link to={`/documents/${doc.id}`}
                       className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800">
                       Ver →
