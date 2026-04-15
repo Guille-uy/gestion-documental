@@ -327,11 +327,13 @@ export function CreateDocumentPage() {
 
   const loadCatalog = () => {
     setConfigError(false);
+    // Areas and document types are critical — fail fast if they error.
+    // Users list and documents list are secondary — resolve gracefully.
     Promise.all([
       apiService.getAreas(),
       apiService.getDocumentTypes(),
-      apiService.listDocuments({ limit: 150, status: "PUBLISHED,IN_REVIEW,DRAFT" }),
-      apiService.getUsers(1, 150),
+      apiService.listDocuments({ limit: 150, status: "PUBLISHED,IN_REVIEW,DRAFT" }).catch(() => ({ data: { data: [] } })),
+      apiService.getUsers(1, 150).catch(() => ({ data: { data: { items: [] } } })),
     ]).then(([aRes, tRes, dRes, uRes]) => {
       const aList: any[] = aRes.data.data ?? [];
       const tList: any[] = tRes.data.data ?? [];

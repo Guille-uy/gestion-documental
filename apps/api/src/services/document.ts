@@ -821,6 +821,7 @@ function formatDocument(doc: any) {
 function formatDocumentWithDetails(doc: any) {
   return {
     ...formatDocument(doc),
+    typeConfig: doc.typeConfig ?? null,
     versions: (doc.versions || []).map((v: any) => ({
       id: v.id,
       versionLabel: v.versionLabel,
