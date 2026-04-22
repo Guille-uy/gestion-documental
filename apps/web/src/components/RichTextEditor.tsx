@@ -8,6 +8,8 @@ import { Color } from "@tiptap/extension-color";
 import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { Highlight } from "@tiptap/extension-highlight";
+import { Link } from "@tiptap/extension-link";
+import { Image } from "@tiptap/extension-image";
 
 export interface RichTextEditorHandle {
   insertContent: (html: string) => void;
@@ -46,6 +48,8 @@ const IcAlignLeft = () => <svg viewBox="0 0 24 24" className="w-4 h-4 fill-curre
 const IcAlignCenter = () => <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M7 15v2h10v-2H7zm-4 6h18v-2H3v2zm0-8h18v-2H3v2zm4-6v2h10V7H7zM3 3v2h18V3H3z"/></svg>;
 const IcAlignRight = () => <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M3 21h18v-2H3v2zm6-4h12v-2H9v2zm-6-4h18v-2H3v2zm6-4h12V7H9v2zM3 3v2h18V3H3z"/></svg>;
 const IcTable = () => <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M20 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 2v3H5V5h15zm-7.5 5h-3v-3h3v3zm0 5h-3v-3h3v3zm5 0h-3v-3h3v3zm0 5h-3v-3h3v3zm-5 0h-3v-3h3v3zm-5-5H5v-3h2.5v3zm0 5H5v-3h2.5v3z"/></svg>;
+const IcLink = () => <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5 0 2.76 2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1 0 1.71-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5 0-2.76-2.24-5-5-5z"/></svg>;
+const IcImage = () => <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>;
 
 function ToolbarBtn({
   onClick,
@@ -95,6 +99,8 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(
         TableRow,
         TableHeader,
         TableCell,
+        Link.configure({ openOnClick: false, HTMLAttributes: { target: "_blank", rel: "noopener noreferrer" } }),
+        Image.configure({ inline: true }),
       ],
       content: value || "",
       onUpdate({ editor }) {
@@ -134,6 +140,40 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(
     const [hexInput, setHexInput] = useState("");
     const colorBtnRef = useRef<HTMLButtonElement>(null);
     const colorPickerPortalRef = useRef<HTMLDivElement>(null);
+
+    // Link dialog state
+    const [showLinkDialog, setShowLinkDialog] = useState(false);
+    const [linkHref, setLinkHref] = useState("");
+    const linkBtnRef = useRef<HTMLButtonElement>(null);
+    const linkDialogRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+      if (!showLinkDialog) return;
+      const handler = (e: MouseEvent) => {
+        if (linkDialogRef.current && !linkDialogRef.current.contains(e.target as Node) &&
+            linkBtnRef.current && !linkBtnRef.current.contains(e.target as Node)) {
+          setShowLinkDialog(false);
+        }
+      };
+      document.addEventListener("mousedown", handler);
+      return () => document.removeEventListener("mousedown", handler);
+    }, [showLinkDialog]);
+
+    // Image dialog state
+    const [showImageDialog, setShowImageDialog] = useState(false);
+    const [imageHref, setImageHref] = useState("");
+    const imageBtnRef = useRef<HTMLButtonElement>(null);
+    const imageDialogRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+      if (!showImageDialog) return;
+      const handler = (e: MouseEvent) => {
+        if (imageDialogRef.current && !imageDialogRef.current.contains(e.target as Node) &&
+            imageBtnRef.current && !imageBtnRef.current.contains(e.target as Node)) {
+          setShowImageDialog(false);
+        }
+      };
+      document.addEventListener("mousedown", handler);
+      return () => document.removeEventListener("mousedown", handler);
+    }, [showImageDialog]);
 
     // Close color picker on outside click
     useEffect(() => {
@@ -333,6 +373,145 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(
           <ToolbarBtn title="Resaltar texto" active={editor.isActive("highlight")} onClick={() => editor.chain().focus().toggleHighlight({ color: "#FEF08A" }).run()}>
             <span className="px-0.5 rounded text-xs font-bold" style={{ backgroundColor: "#FEF08A", color: "#78350f" }}>ab</span>
           </ToolbarBtn>
+          <Divider />
+
+          {/* Link */}
+          <div className="relative">
+            <button
+              ref={linkBtnRef}
+              type="button"
+              title={editor.isActive("link") ? "Editar / quitar enlace" : "Insertar enlace"}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                if (editor.isActive("link")) {
+                  const current = editor.getAttributes("link").href ?? "";
+                  setLinkHref(current);
+                } else {
+                  setLinkHref("");
+                }
+                setShowLinkDialog(v => !v);
+              }}
+              className={`px-2.5 py-1.5 rounded text-sm font-medium transition-colors select-none leading-none flex items-center gap-1 ${
+                editor.isActive("link") ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+              }`}
+            >
+              <IcLink /><span className="text-xs">Link</span>
+            </button>
+            {showLinkDialog && linkBtnRef.current && createPortal(
+              <div
+                ref={linkDialogRef}
+                style={{
+                  position: "fixed",
+                  top: linkBtnRef.current.getBoundingClientRect().bottom + 6,
+                  left: linkBtnRef.current.getBoundingClientRect().left,
+                  zIndex: 9999,
+                }}
+                className="bg-white border border-slate-200 rounded-lg shadow-2xl p-3 w-72"
+              >
+                <p className="text-xs font-semibold text-slate-600 mb-2">URL del enlace</p>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    autoFocus
+                    value={linkHref}
+                    onChange={e => setLinkHref(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (linkHref.trim()) {
+                          editor.chain().focus().setLink({ href: linkHref.trim() }).run();
+                        }
+                        setShowLinkDialog(false);
+                      }
+                      if (e.key === "Escape") setShowLinkDialog(false);
+                    }}
+                    placeholder="https://..."
+                    className="flex-1 text-xs border border-slate-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  />
+                  <button
+                    type="button"
+                    onMouseDown={e => {
+                      e.preventDefault();
+                      if (linkHref.trim()) editor.chain().focus().setLink({ href: linkHref.trim() }).run();
+                      setShowLinkDialog(false);
+                    }}
+                    className="px-2 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                  >OK</button>
+                </div>
+                {editor.isActive("link") && (
+                  <button
+                    type="button"
+                    onMouseDown={e => {
+                      e.preventDefault();
+                      editor.chain().focus().unsetLink().run();
+                      setShowLinkDialog(false);
+                    }}
+                    className="mt-2 text-xs text-red-500 hover:text-red-700"
+                  >✕ Quitar enlace</button>
+                )}
+              </div>,
+              document.body
+            )}
+          </div>
+
+          {/* Image */}
+          <div className="relative">
+            <button
+              ref={imageBtnRef}
+              type="button"
+              title="Insertar imagen por URL"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setImageHref("");
+                setShowImageDialog(v => !v);
+              }}
+              className="px-2.5 py-1.5 rounded text-sm font-medium transition-colors select-none leading-none flex items-center gap-1 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+            >
+              <IcImage /><span className="text-xs">Img</span>
+            </button>
+            {showImageDialog && imageBtnRef.current && createPortal(
+              <div
+                ref={imageDialogRef}
+                style={{
+                  position: "fixed",
+                  top: imageBtnRef.current.getBoundingClientRect().bottom + 6,
+                  left: imageBtnRef.current.getBoundingClientRect().left,
+                  zIndex: 9999,
+                }}
+                className="bg-white border border-slate-200 rounded-lg shadow-2xl p-3 w-72"
+              >
+                <p className="text-xs font-semibold text-slate-600 mb-2">URL de la imagen</p>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    autoFocus
+                    value={imageHref}
+                    onChange={e => setImageHref(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (imageHref.trim()) editor.chain().focus().setImage({ src: imageHref.trim() }).run();
+                        setShowImageDialog(false);
+                      }
+                      if (e.key === "Escape") setShowImageDialog(false);
+                    }}
+                    placeholder="https://..."
+                    className="flex-1 text-xs border border-slate-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  />
+                  <button
+                    type="button"
+                    onMouseDown={e => {
+                      e.preventDefault();
+                      if (imageHref.trim()) editor.chain().focus().setImage({ src: imageHref.trim() }).run();
+                      setShowImageDialog(false);
+                    }}
+                    className="px-2 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                  >OK</button>
+                </div>
+              </div>,
+              document.body
+            )}
+          </div>
           <Divider />
 
           {/* Table */}

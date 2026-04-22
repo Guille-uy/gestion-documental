@@ -50,8 +50,10 @@ const FALLBACK_CONFIG: ModuleConfig = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DocRelatedPicker — searchable list of existing documents
+// DocRelatedPicker — searchable list of existing documents + external links
 // ─────────────────────────────────────────────────────────────────────────────
+type ExternalLink = { url: string; label: string };
+
 function DocRelatedPicker({
   allDocs,
   currentDocId,
@@ -61,8 +63,12 @@ function DocRelatedPicker({
   currentDocId?: string;
   onChange: (html: string) => void;
 }) {
+  const [tab, setTab] = useState<"docs" | "links">("docs");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
+  const [links, setLinks] = useState<ExternalLink[]>([]);
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkLabel, setLinkLabel] = useState("");
 
   const filtered = allDocs
     .filter(d => d.id !== currentDocId && d.status !== "OBSOLETE")
@@ -73,65 +79,153 @@ function DocRelatedPicker({
       (d.type ?? "").toLowerCase().includes(search.toLowerCase())
     );
 
-  const serialize = (ids: string[]) => {
+  const buildHtml = (ids: string[], extLinks: ExternalLink[]) => {
+    let html = "";
     const sel = allDocs.filter(d => ids.includes(d.id));
-    if (!sel.length) return "";
-    const rows = sel.map(d =>
-      `<tr><td>${d.code ?? "—"}</td><td>${d.title}</td><td>${d.type ?? "—"}</td><td>${d.area ?? "—"}</td></tr>`
-    ).join("");
-    return `<table><thead><tr><th>Código</th><th>Título</th><th>Tipo</th><th>Área</th></tr></thead><tbody>${rows}</tbody></table>`;
+    if (sel.length) {
+      const rows = sel.map(d =>
+        `<tr><td>${d.code ?? "—"}</td><td>${d.title}</td><td>${d.type ?? "—"}</td><td>${d.area ?? "—"}</td></tr>`
+      ).join("");
+      html += `<table><thead><tr><th>Código</th><th>Título</th><th>Tipo</th><th>Área</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+    if (extLinks.length) {
+      const items = extLinks.map(l =>
+        `<li><a href="${l.url}" target="_blank" rel="noopener noreferrer">${l.label || l.url}</a></li>`
+      ).join("");
+      html += `<ul>${items}</ul>`;
+    }
+    return html;
   };
 
   const toggle = (id: string) => {
     setSelected(prev => {
       const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
-      onChange(serialize(next));
+      onChange(buildHtml(next, links));
       return next;
     });
   };
 
+  const addLink = () => {
+    if (!linkUrl.trim()) return;
+    const next = [...links, { url: linkUrl.trim(), label: linkLabel.trim() }];
+    setLinks(next);
+    setLinkUrl("");
+    setLinkLabel("");
+    onChange(buildHtml(selected, next));
+  };
+
+  const removeLink = (i: number) => {
+    const next = links.filter((_, idx) => idx !== i);
+    setLinks(next);
+    onChange(buildHtml(selected, next));
+  };
+
   return (
     <div className="space-y-3">
-      <div className="relative">
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar por código, título o tipo..."
-          className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <svg className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-gray-200">
+        <button type="button" onClick={() => setTab("docs")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === "docs" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
+          📄 Documentos del sistema
+        </button>
+        <button type="button" onClick={() => setTab("links")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === "links" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
+          🔗 Links externos {links.length > 0 && <span className="ml-1 bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded-full">{links.length}</span>}
+        </button>
       </div>
-      <div className="max-h-72 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
-        {filtered.length === 0 && (
-          <p className="text-center text-gray-400 text-sm py-8">
-            {allDocs.length === 0 ? "Cargando documentos..." : "No se encontraron documentos"}
-          </p>
-        )}
-        {filtered.map(d => (
-          <label key={d.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 cursor-pointer transition-colors">
+
+      {tab === "docs" && (
+        <>
+          <div className="relative">
             <input
-              type="checkbox"
-              checked={selected.includes(d.id)}
-              onChange={() => toggle(d.id)}
-              className="w-4 h-4 rounded text-blue-600"
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar por código, título o tipo..."
+              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <div className="flex-1 min-w-0">
-              <span className="font-mono text-xs text-gray-500 mr-2">{d.code ?? "—"}</span>
-              <span className="text-sm text-gray-800 font-medium">{d.title}</span>
+            <svg className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <div className="max-h-72 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
+            {filtered.length === 0 && (
+              <p className="text-center text-gray-400 text-sm py-8">
+                {allDocs.length === 0 ? "Cargando documentos..." : "No se encontraron documentos"}
+              </p>
+            )}
+            {filtered.map(d => (
+              <label key={d.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 cursor-pointer transition-colors">
+                <input
+                  type="checkbox"
+                  checked={selected.includes(d.id)}
+                  onChange={() => toggle(d.id)}
+                  className="w-4 h-4 rounded text-blue-600"
+                />
+                <div className="flex-1 min-w-0">
+                  <span className="font-mono text-xs text-gray-500 mr-2">{d.code ?? "—"}</span>
+                  <span className="text-sm text-gray-800 font-medium">{d.title}</span>
+                </div>
+                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded flex-shrink-0">{d.type}</span>
+              </label>
+            ))}
+          </div>
+          {selected.length > 0 ? (
+            <p className="text-sm text-green-700 font-medium">
+              ✓ {selected.length} documento{selected.length > 1 ? "s" : ""} seleccionado{selected.length > 1 ? "s" : ""}
+            </p>
+          ) : (
+            <p className="text-xs text-gray-400">Seleccioná los documentos del sistema que se relacionan con este.</p>
+          )}
+        </>
+      )}
+
+      {tab === "links" && (
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-2">
+            <input
+              type="url"
+              value={linkUrl}
+              onChange={e => setLinkUrl(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addLink(); } }}
+              placeholder="https://..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={linkLabel}
+                onChange={e => setLinkLabel(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addLink(); } }}
+                placeholder="Etiqueta del link (opcional)"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button type="button" onClick={addLink} disabled={!linkUrl.trim()}
+                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-40">
+                + Agregar
+              </button>
             </div>
-            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded flex-shrink-0">{d.type}</span>
-          </label>
-        ))}
-      </div>
-      {selected.length > 0 ? (
-        <p className="text-sm text-green-700 font-medium">
-          ✓ {selected.length} documento{selected.length > 1 ? "s" : ""} seleccionado{selected.length > 1 ? "s" : ""}
-        </p>
-      ) : (
-        <p className="text-xs text-gray-400">Seleccioná los documentos del sistema que se relacionan con este.</p>
+          </div>
+          {links.length === 0 ? (
+            <p className="text-xs text-gray-400">Ingresá una URL y una etiqueta descriptiva, luego hacé clic en Agregar.</p>
+          ) : (
+            <ul className="space-y-2">
+              {links.map((l, i) => (
+                <li key={i} className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                  <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5 0 2.76 2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1 0 1.71-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5 0-2.76-2.24-5-5-5z"/>
+                  </svg>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">{l.label || l.url}</p>
+                    {l.label && <p className="text-xs text-gray-400 truncate">{l.url}</p>}
+                  </div>
+                  <button type="button" onClick={() => removeLink(i)}
+                    className="text-gray-400 hover:text-red-500 text-lg leading-none flex-shrink-0">×</button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   );
@@ -828,6 +922,7 @@ export function CreateDocumentPage() {
     if (!isFileUploadType) return null;
     const typeName = selectedTypeConfig?.name ?? setup.type;
     const acceptHint = fileUploadAccept !== "*" ? fileUploadAccept : "cualquier archivo";
+    const existingVersions: any[] = doc?.versions ?? [];
     return (
       <div className="space-y-5">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -839,6 +934,28 @@ export function CreateDocumentPage() {
             </div>
           </div>
           <div className="p-6 space-y-4">
+            {/* Existing uploaded versions */}
+            {existingVersions.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-700">Archivos ya subidos:</p>
+                <div className="divide-y divide-gray-100 border border-gray-200 rounded-lg overflow-hidden">
+                  {existingVersions.map((v: any) => (
+                    <div key={v.id} className="flex items-center gap-3 px-4 py-2.5 bg-gray-50">
+                      <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800">{v.fileName ?? `Versión ${v.versionLabel}`}</p>
+                        {v.fileSize && <p className="text-xs text-gray-500">{(v.fileSize / 1024).toFixed(1)} KB · {v.versionLabel}</p>}
+                      </div>
+                      <span className="text-xs text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded">subido</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400">Podés subir un archivo adicional — cada subida crea una nueva versión.</p>
+              </div>
+            )}
+
             <label className="flex flex-col items-center gap-3 px-6 py-10 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
               <svg className="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />

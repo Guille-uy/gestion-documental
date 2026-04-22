@@ -10,14 +10,48 @@ import toast from "react-hot-toast";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
+/** Lazily loads and embeds the file for a document using an object URL. */
+function EmbeddedFileViewer({ documentId }: { documentId: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  useEffect(() => {
+    let revoke: string | null = null;
+    apiService.downloadDocument(documentId)
+      .then(res => {
+        const mimeType = res.headers["content-type"] || "application/pdf";
+        const blob = new Blob([res.data], { type: mimeType });
+        const url = window.URL.createObjectURL(blob);
+        revoke = url;
+        setSrc(url);
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+    return () => { if (revoke) window.URL.revokeObjectURL(revoke); };
+  }, [documentId]);
+  if (loading) return (
+    <div className="flex items-center justify-center py-10 text-gray-400 text-sm gap-2">
+      <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+      Cargando documento...
+    </div>
+  );
+  if (error || !src) return (
+    <div className="flex items-center justify-center py-8 text-gray-400 text-sm">No se pudo cargar el archivo adjunto.</div>
+  );
+  return (
+    <iframe src={src} className="w-full border-0" style={{ height: "80vh" }} title="Documento adjunto" />
+  );
+}
 
 
 /** Render a content value that may be plain markdown or HTML */
 function renderContent(value: string): string {
   if (!value) return "";
   const trimmed = value.trim();
-  // If it already has HTML tags, render as-is
-  if (/^<[a-zA-Z]/.test(trimmed) || /<\/[a-zA-Z]>/.test(trimmed)) return value;
+  // If it already has HTML tags, render as-is (but ensure external links open in new tab)
+  if (/^<[a-zA-Z]/.test(trimmed) || /<\/[a-zA-Z]>/.test(trimmed)) {
+    return value.replace(/<a\s+href="(https?:\/\/[^"]+)"/gi, '<a href="$1" target="_blank" rel="noopener noreferrer"');
+  }
   return plainToHtml(value);
 }
 
@@ -555,8 +589,22 @@ export function DocumentDetailPage() {
             <button onClick={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}
               className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
           </div>
-          <iframe src={previewUrl} className="w-full rounded border border-gray-200" style={{ height: "640px" }}
+          <iframe src={previewUrl} className="w-full rounded border border-gray-200" style={{ height: "75vh" }}
             title="Vista previa del documento" />
+        </div>
+      )}
+
+      {/* Embedded file for file-upload type docs — shown inline in document content area */}
+      {tieneArchivo && !previewUrl && doc?.typeConfig?.requiresFileUpload && (
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 bg-gray-50">
+            <h2 className="font-bold text-gray-900 text-sm">Documento adjunto</h2>
+            <div className="flex gap-2 no-print">
+              <button onClick={handleDownloadDocument} className="text-xs text-blue-600 hover:text-blue-800 font-medium">⬇ Descargar</button>
+              <button onClick={handlePreviewDocument} className="text-xs text-blue-600 hover:text-blue-800 font-medium">🔍 Ver en pantalla completa</button>
+            </div>
+          </div>
+          <EmbeddedFileViewer documentId={documentId!} />
         </div>
       )}
 
